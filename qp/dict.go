@@ -19,7 +19,9 @@ type Entry struct {
 	// the first letters are keys in the map-that-is-the-value
 }
 
-func NewDict(fileName string) (map[string][]string, error) {
+// NewShapeDict composes a map keyed by configuration. values are
+// slices of strings, each string has that configuration
+func NewShapeDict(fileName string) (map[string][]string, error) {
 	fin, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
@@ -49,6 +51,9 @@ func NewDict(fileName string) (map[string][]string, error) {
 	return d, nil
 }
 
+// NewRunesDict accepts a map of []strings, keyed by shape/configuration.
+// It returns a map of struct Entry, which are the shape's possible letters
+// at each index.
 func NewRunesDict(wordDict map[string][]string) map[string]*Entry {
 	d := make(map[string]*Entry)
 
