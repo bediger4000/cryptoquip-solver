@@ -7,6 +7,19 @@ func StringConfiguration(line string) string {
 
 	idx := 0
 
+	ln := len(line)
+	if ln >= 2 && line[ln-1] == 's' && line[ln-2] == '\'' {
+		line = line[:ln-2]
+	}
+	ln = len(line)
+	if line[ln-1] == '\'' {
+		line = line[:ln-1]
+	}
+
+	if len(line) == 0 {
+		return ""
+	}
+
 	for i, r := range line {
 		if i == 0 {
 			key = append(key, '0')
