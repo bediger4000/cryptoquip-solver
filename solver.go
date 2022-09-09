@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"regexp"
 	"sort"
 	"unicode"
 
@@ -16,7 +18,7 @@ func main() {
 	verbose := flag.Bool("v", false, "verbose output")
 	flag.Parse()
 
-	dict, err := qp.NewDict(*dictName)
+	shapeDict, err := qp.NewShapeDict(*dictName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,7 +33,7 @@ func main() {
 	}
 	fmt.Printf("Hint: %c = %c\n\n", enciphered, clear)
 
-	allLetters := qp.NewRunesDict(dict)
+	allLetters := qp.NewRunesDict(shapeDict)
 
 	possibleLetters := make(map[rune]map[rune]bool)
 
@@ -39,7 +41,7 @@ func main() {
 		config := qp.StringConfiguration(string(str))
 		fmt.Printf("%s\n%s\n", str, config)
 
-		configMatches := dict[config]
+		configMatches := shapeDict[config]
 		fmt.Printf("%d matches\n", len(configMatches))
 
 		if entry, ok := allLetters[config]; ok {
@@ -127,22 +129,8 @@ func main() {
 		printLetters(cipherLetter, "", possibles)
 	}
 
-	cipherLetterRegexps := make(map[rune]string)
-
-	// compose regular expressions for cipherwords
-	for _, cipherword := range puzzlewords {
-		cwregexp := "^"
-		for _, b := range cipherword {
-			r := rune(b)
-			if _, ok := cipherLetterRegexps[r]; !ok {
-				cipherLetterRegexps[r] = composeRegexp(possibleLetters[r])
-			}
-			clregexp := cipherLetterRegexps[r]
-			cwregexp += clregexp
-		}
-		cwregexp += "$"
-		fmt.Printf("%q must match '%s'\n", cipherword, cwregexp)
-	}
+	shapeMatches := cwMustMatch(puzzlewords, possibleLetters, *verbose)
+	shapeDict = weedShapeDict(shapeDict, shapeMatches, *verbose)
 }
 
 func printLetters(cipherLetter rune, format string, m map[rune]bool) {
@@ -216,4 +204,62 @@ func composeRegexp(m map[rune]bool) string {
 	}
 
 	return fmt.Sprintf("[%s]", str)
+}
+
+type shapeMatch struct {
+	cipherWord    string
+	configuration string
+	pattern       string
+	rgxp          *regexp.Regexp
+}
+
+// compose regular expressions that cipherwords must match
+func cwMustMatch(puzzlewords [][]byte, possibleLetters map[rune]map[rune]bool, verbose bool) []*shapeMatch {
+
+	var smatches []*shapeMatch
+
+	cipherLetterRegexps := make(map[rune]string)
+
+	for _, cipherword := range puzzlewords {
+		cwregexp := "^"
+		for _, b := range cipherword {
+			r := rune(b)
+			if _, ok := cipherLetterRegexps[r]; !ok {
+				cipherLetterRegexps[r] = composeRegexp(possibleLetters[r])
+			}
+			clregexp := cipherLetterRegexps[r]
+			cwregexp += clregexp
+		}
+		cwregexp += "$"
+		if verbose {
+			fmt.Printf("%q must match '%s'\n", cipherword, cwregexp)
+		}
+		str := string(cipherword)
+		smatches = append(smatches,
+			&shapeMatch{
+				cipherWord:    str,
+				configuration: qp.StringConfiguration(str),
+				pattern:       cwregexp,
+			},
+		)
+	}
+	return smatches
+}
+
+func weedShapeDict(shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
+	for _, sm := range shapeMatches {
+		rgxp, err := regexp.Compile(sm.pattern)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "pattern %s: %v", sm.pattern, err)
+			continue
+		}
+		countMatches := 0
+		for _, shapeWord := range shapeDict[sm.configuration] {
+			if rgxp.MatchString(shapeWord) {
+				countMatches++
+			}
+		}
+		fmt.Printf("cipherword %q could be %d dictionary words\n", sm.cipherWord, countMatches)
+	}
+	return nil
 }
