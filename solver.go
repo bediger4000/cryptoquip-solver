@@ -35,102 +35,139 @@ func main() {
 
 	allLetters := qp.NewRunesDict(shapeDict)
 
-	possibleLetters := make(map[rune]map[rune]bool)
+	for cycle := 0; cycle < 3; cycle++ {
 
-	for _, str := range puzzlewords {
-		config := qp.StringConfiguration(string(str))
-		fmt.Printf("%s\n%s\n", str, config)
+		fmt.Printf("---start cycle %d---\n\n", cycle)
 
-		configMatches := shapeDict[config]
-		fmt.Printf("%d matches\n", len(configMatches))
+		possibleLetters := make(map[rune]map[rune]bool)
 
-		if entry, ok := allLetters[config]; ok {
-			fmt.Printf("Found letters for %s, configuration %s\n", str, config)
-			for i := 0; i < entry.Length; i++ {
-				// all the letters found at index i in all words with this configuration
-				cipherLetter := rune(str[i])
-				if unicode.IsPunct(cipherLetter) {
-					continue
-				}
-				if clearLetters, ok := possibleLetters[cipherLetter]; ok {
-					if *verbose {
-						printLetters(cipherLetter, "currently associated with", clearLetters)
+		for _, str := range puzzlewords {
+			config := qp.StringConfiguration(string(str))
+			fmt.Printf("%s\n%s\n", str, config)
+
+			configMatches := shapeDict[config]
+			fmt.Printf("%d matches\n", len(configMatches))
+
+			if entry, ok := allLetters[config]; ok {
+				fmt.Printf("Found letters for %s, configuration %s\n", str, config)
+				for i := 0; i < entry.Length; i++ {
+					// all the letters found at index i in all words with this configuration
+					cipherLetter := rune(str[i])
+					if unicode.IsPunct(cipherLetter) {
+						continue
 					}
-					hadN := len(clearLetters)
-					// find intersection of clearLetters and entry.Runes[i]
-					intersection := make(map[rune]bool)
-					for newLetter, _ := range entry.Runes[i] {
-						if clearLetters[newLetter] {
-							intersection[newLetter] = true
+					if clearLetters, ok := possibleLetters[cipherLetter]; ok {
+						if *verbose {
+							printLetters(cipherLetter, "currently associated with", clearLetters)
+						}
+						hadN := len(clearLetters)
+						// find intersection of clearLetters and entry.Runes[i]
+						intersection := make(map[rune]bool)
+						for newLetter, _ := range entry.Runes[i] {
+							if clearLetters[newLetter] {
+								intersection[newLetter] = true
+							}
+						}
+						possibleLetters[cipherLetter] = intersection
+						hasN := len(intersection)
+						fmt.Printf("cipher letter %c had %d clear letters, has %d\n", cipherLetter, hadN, hasN)
+						if *verbose {
+							printLetters(cipherLetter, "now associated with", possibleLetters[cipherLetter])
+						}
+					} else {
+						possibleLetters[cipherLetter] = make(map[rune]bool)
+						for newLetter, _ := range entry.Runes[i] {
+							possibleLetters[cipherLetter][newLetter] = true
+						}
+						fmt.Printf("cipher letter %c starts with %d clear letters\n", cipherLetter, len(possibleLetters[cipherLetter]))
+						if *verbose {
+							printLetters(cipherLetter, "initially associated with", possibleLetters[cipherLetter])
 						}
 					}
-					possibleLetters[cipherLetter] = intersection
-					hasN := len(intersection)
-					fmt.Printf("cipher letter %c had %d clear letters, has %d\n", cipherLetter, hadN, hasN)
-					if *verbose {
-						printLetters(cipherLetter, "now associated with", possibleLetters[cipherLetter])
-					}
-				} else {
-					possibleLetters[cipherLetter] = make(map[rune]bool)
-					for newLetter, _ := range entry.Runes[i] {
-						possibleLetters[cipherLetter][newLetter] = true
-					}
-					fmt.Printf("cipher letter %c starts with %d clear letters\n", cipherLetter, len(possibleLetters[cipherLetter]))
-					if *verbose {
-						printLetters(cipherLetter, "initially associated with", possibleLetters[cipherLetter])
+				}
+				fmt.Println()
+			} else {
+				fmt.Printf("Did not find letters for %s, configuration %s\n", str, config)
+			}
+		}
+
+		// Delete all but the clue from clue's cipher letter
+		fmt.Printf("setting hint cipherletter %c to %c\n", enciphered, clear)
+		possibleLetters[enciphered] = make(map[rune]bool)
+		possibleLetters[enciphered][clear] = true
+
+		// Delete the clue from all other cipher letters
+		for cipherLetter, letters := range possibleLetters {
+			if cipherLetter == enciphered {
+				continue
+			}
+			delete(letters, clear)
+		}
+
+		// Determine if some letter(s) only appear in one cipher letter's list
+		counts := make(map[rune]int)
+		for _, possibles := range possibleLetters {
+			for l, _ := range possibles {
+				counts[l]++
+			}
+		}
+		for l, count := range counts {
+			if count == 1 {
+				// there's only a single letter with value in l.
+				// Rid the cipher letter it's associated with of all other clear letters
+				fmt.Printf("%c only appears once\n", l)
+				for cipherletter, possibles := range possibleLetters {
+					if possibles[l] {
+						fmt.Printf("singleton clear text letter %c associated with cipher letter %c\n", l, cipherletter)
+						single := make(map[rune]bool)
+						single[l] = true
+						possibleLetters[cipherletter] = single
+						break // don't have to look for other cipherletters
 					}
 				}
+				// don't have to remove it from other cipherletter's clear letters
 			}
-			fmt.Println()
-		} else {
-			fmt.Printf("Did not find letters for %s, configuration %s\n", str, config)
 		}
-	}
 
-	// Delete all but the clue from clue's cipher letter
-	fmt.Printf("setting hint cipherletter %c to %c\n", enciphered, clear)
-	possibleLetters[enciphered] = make(map[rune]bool)
-	possibleLetters[enciphered][clear] = true
-
-	// Delete the clue from all other cipher letters
-	for cipherLetter, letters := range possibleLetters {
-		if cipherLetter == enciphered {
-			continue
-		}
-		delete(letters, clear)
-	}
-
-	// Determine if some letter(s) only appear in one cipher letter's list
-	counts := make(map[rune]int)
-	for _, possibles := range possibleLetters {
-		for l, _ := range possibles {
-			counts[l]++
-		}
-	}
-	for l, count := range counts {
-		if count == 1 {
-			// there's only a single letter with value in l.
-			// Rid the cipher letter it's associated with of all other clear letters
-			fmt.Printf("%c only appears once\n", l)
-			for cipherletter, possibles := range possibleLetters {
-				if possibles[l] {
-					fmt.Printf("singleton clear text letter %c associated with cipher letter %c\n", l, cipherletter)
-					single := make(map[rune]bool)
-					single[l] = true
-					possibleLetters[cipherletter] = single
-					break // don't have to look for other cipherletters
+		stillDeleting := true
+		for stillDeleting {
+			deletedSingletonCount := 0
+			for cipherLetter, possibles := range possibleLetters {
+				if len(possibles) == 1 {
+					// use range to extract the single key from map possibles
+					for clearletter, _ := range possibles {
+						if *verbose {
+							fmt.Printf("cipher letter %c has only 1 clear letter: %c\n", cipherLetter, clearletter)
+						}
+						// Remove clearletter's value from all the other possibleLetters
+						for cl, poss := range possibleLetters {
+							if cl == cipherLetter {
+								continue
+							}
+							if *verbose {
+								fmt.Printf("deleted clear letter %c from cipher letter %c possibles\n", clearletter, cl)
+							}
+							delete(poss, clearletter)
+							deletedSingletonCount++
+						}
+					}
+				}
+				if deletedSingletonCount < 1 {
+					stillDeleting = false
 				}
 			}
-			// don't have to remove it from other cipherletter's clear letters
 		}
-	}
 
-	for cipherLetter, possibles := range possibleLetters {
-		printLetters(cipherLetter, "", possibles)
-	}
+		for cipherLetter, possibles := range possibleLetters {
+			printLetters(cipherLetter, "", possibles)
+		}
 
-	shapeMatches := cwMustMatch(puzzlewords, possibleLetters, *verbose)
-	shapeDict = weedShapeDict(shapeDict, shapeMatches, *verbose)
+		shapeMatches := cwMustMatch(puzzlewords, possibleLetters, *verbose)
+		shapeDict = weedShapeDict(shapeDict, shapeMatches, *verbose)
+		allLetters = qp.NewRunesDict(shapeDict)
+
+		fmt.Printf("---end cycle %d---\n\n", cycle)
+	}
 }
 
 func printLetters(cipherLetter rune, format string, m map[rune]bool) {
@@ -247,6 +284,7 @@ func cwMustMatch(puzzlewords [][]byte, possibleLetters map[rune]map[rune]bool, v
 }
 
 func weedShapeDict(shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
+	newShapeDict := make(map[string][]string)
 	for _, sm := range shapeMatches {
 		rgxp, err := regexp.Compile(sm.pattern)
 		if err != nil {
@@ -256,10 +294,19 @@ func weedShapeDict(shapeDict map[string][]string, shapeMatches []*shapeMatch, ve
 		countMatches := 0
 		for _, shapeWord := range shapeDict[sm.configuration] {
 			if rgxp.MatchString(shapeWord) {
+				newShapeDict[sm.configuration] = append(newShapeDict[sm.configuration], shapeWord)
 				countMatches++
 			}
 		}
-		fmt.Printf("cipherword %q could be %d dictionary words\n", sm.cipherWord, countMatches)
+		if verbose {
+			fmt.Printf("cipherword %q could be %d dictionary words\n", sm.cipherWord, countMatches)
+			if countMatches < 6 {
+				for _, word := range newShapeDict[sm.configuration] {
+					fmt.Printf("\t%s\n", word)
+				}
+
+			}
+		}
 	}
-	return nil
+	return newShapeDict
 }
