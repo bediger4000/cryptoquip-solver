@@ -69,9 +69,9 @@ func main() {
 							}
 						}
 						possibleLetters[cipherLetter] = intersection
-						hasN := len(intersection)
-						fmt.Printf("cipher letter %c had %d clear letters, has %d\n", cipherLetter, hadN, hasN)
 						if *verbose {
+							hasN := len(intersection)
+							fmt.Printf("cipher letter %c had %d clear letters, has %d\n", cipherLetter, hadN, hasN)
 							printLetters(cipherLetter, "now associated with", possibleLetters[cipherLetter])
 						}
 					} else {
@@ -158,15 +158,25 @@ func main() {
 			}
 		}
 
-		for cipherLetter, possibles := range possibleLetters {
-			printLetters(cipherLetter, "", possibles)
-		}
+		printSortedPossible(possibleLetters)
 
 		shapeMatches := cwMustMatch(puzzlewords, possibleLetters, *verbose)
 		shapeDict = weedShapeDict(shapeDict, shapeMatches, *verbose)
 		allLetters = qp.NewRunesDict(shapeDict)
 
 		fmt.Printf("---end cycle %d---\n\n", cycle)
+	}
+}
+
+func printSortedPossible(possibleLetters map[rune]map[rune]bool) {
+	var keys []rune
+	for cipherLetter, _ := range possibleLetters {
+		keys = append(keys, cipherLetter)
+	}
+	sort.Sort(RuneSlice(keys))
+
+	for i := range keys {
+		printLetters(keys[i], "", possibleLetters[keys[i]])
 	}
 }
 
