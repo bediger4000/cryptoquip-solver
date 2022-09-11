@@ -33,6 +33,17 @@ func main() {
 	}
 	fmt.Printf("Hint: %c = %c\n\n", enciphered, clear)
 
+	// Keep track of solved letters in a map.
+	// Keys are cipher letters, values are the corresponding cleartext letters
+	solvedLetters := make(map[rune]rune)
+	solvedLetters[enciphered] = clear
+	cipherLetters := sortOutCiperLetters(puzzlewords)
+	fmt.Printf("%d total cipher letters\n", len(cipherLetters))
+
+	// find all the dictionary words "shapes", and match up the letters with
+	// those shapes.
+	// The word "goober" would have the shape "011234".
+	// "goober" would add
 	allLetters := qp.NewRunesDict(shapeDict)
 
 	for cycle := 0; cycle < 3; cycle++ {
@@ -319,4 +330,21 @@ func weedShapeDict(shapeDict map[string][]string, shapeMatches []*shapeMatch, ve
 		}
 	}
 	return newShapeDict
+}
+
+// sortOutCiperLetters creates a sorted array of all
+// the runes in the puzzle.
+func sortOutCiperLetters(puzzlewords [][]byte) []rune {
+	m := make(map[rune]bool)
+	for _, word := range puzzlewords {
+		for _, r := range word {
+			m[rune(r)] = true
+		}
+	}
+	cipherLetters := make([]rune, 0, len(m))
+	for r, _ := range m {
+		cipherLetters = append(cipherLetters, r)
+	}
+	sort.Sort(RuneSlice(cipherLetters))
+	return cipherLetters
 }
