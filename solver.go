@@ -154,9 +154,47 @@ func main() {
 
 		printSolvedLetters(solved.cipherLetters, solved.solvedLetters)
 
-		// TODO - print puzzle with solution so far
+		fmt.Println("\nSolved Puzzle:")
+		printSolvedWords(puzzlewords, &solved)
 
 		fmt.Printf("---end cycle %d---\n\n", cycle)
+	}
+}
+
+func printSolvedWords(puzzlewords [][]byte, solved *Solved) {
+	lineLength := 0
+	cipherLine := ""
+	clearLine := ""
+	spacer := ""
+	for _, word := range puzzlewords {
+		cipherLine = fmt.Sprintf("%s%s%s", cipherLine, spacer, string(word))
+
+		clearWord := ""
+		for _, b := range word {
+			x := '?'
+			if c, ok := solved.solvedLetters[rune(b)]; ok {
+				x = c
+			}
+			clearWord = fmt.Sprintf("%s%c", clearWord, x)
+		}
+		clearLine = fmt.Sprintf("%s%s%s", clearLine, spacer, clearWord)
+
+		spacer = " "
+		lineLength = len(cipherLine)
+		if lineLength > 72 {
+			fmt.Println(cipherLine)
+			fmt.Println(clearLine)
+			fmt.Println()
+			cipherLine = ""
+			clearLine = ""
+			spacer = ""
+		}
+	}
+	lineLength = len(cipherLine)
+	if lineLength > 0 {
+		fmt.Println(cipherLine)
+		fmt.Println(clearLine)
+		fmt.Println()
 	}
 }
 
