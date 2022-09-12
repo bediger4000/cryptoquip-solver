@@ -143,7 +143,7 @@ func main() {
 		// remove solved letters from allLetters
 		removeLetters(solvedLetters, allLetters)
 
-		printSolvedLetters(solvedLetters)
+		printSolvedLetters(cipherLetters, solvedLetters)
 
 		fmt.Printf("---end cycle %d---\n\n", cycle)
 	}
@@ -362,20 +362,15 @@ func sortOutCiperLetters(puzzlewords [][]byte) []rune {
 	return cipherLetters
 }
 
-func printSolvedLetters(mrr map[rune]rune) {
+func printSolvedLetters(cipherLetters []rune, mrr map[rune]rune) {
 	fmt.Printf("\nSolved letters:\n")
-	keys := make([]rune, 0, len(mrr))
-	for cipher, _ := range mrr {
-		keys = append(keys, cipher)
-	}
-	sort.Sort(RuneSlice(keys))
 
-	for i := range keys {
-		fmt.Printf("%c ", keys[i])
+	for i := range cipherLetters {
+		fmt.Printf("%c ", cipherLetters[i])
 	}
 	fmt.Println()
-	for i := range keys {
-		if clear, ok := mrr[keys[i]]; ok {
+	for i := range cipherLetters {
+		if clear, ok := mrr[cipherLetters[i]]; ok {
 			fmt.Printf("%c ", clear)
 		} else {
 			fmt.Printf("? ")
