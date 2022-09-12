@@ -21,6 +21,9 @@ func ReadPuzzle(fileName string, verbose bool) ([][]byte, rune, rune, error) {
 	for _, line := range bytes.Split(buf, []byte{'\n'}) {
 		line = bytes.TrimSpace(line)
 		if len(line) == 0 || line[0] == '#' {
+			if bytes.Contains(line, []byte("Solution")) {
+				break
+			}
 			continue
 		}
 		if bytes.ContainsRune(line, '=') {
