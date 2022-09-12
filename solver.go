@@ -12,6 +12,12 @@ import (
 	"cryptoquip/qp"
 )
 
+type Solved struct {
+	cipherLetters []rune        // alphabetized slice of cipherletters
+	solvedLetters map[rune]rune // cipherletter key to clear text letter value
+	clearLetters  map[rune]bool // all the clear letters so far
+}
+
 func main() {
 	dictName := flag.String("d", "/usr/share/dict/words", "cleartext dictionary")
 	puzzleName := flag.String("p", "", "puzzle file name")
@@ -33,12 +39,15 @@ func main() {
 	}
 	fmt.Printf("Hint: %c = %c\n\n", enciphered, clear)
 
+	var solved Solved
+
 	// Keep track of solved letters in a map.
 	// Keys are cipher letters, values are the corresponding cleartext letters
-	solvedLetters := make(map[rune]rune)
-	solvedLetters[enciphered] = clear
-	cipherLetters := sortOutCiperLetters(puzzlewords)
-	fmt.Printf("%d total cipher letters\n", len(cipherLetters))
+	solved.solvedLetters = make(map[rune]rune)
+	solved.clearLetters = make(map[rune]bool)
+	solved.solvedLetters[enciphered] = clear
+	solved.cipherLetters = sortOutCiperLetters(puzzlewords)
+	fmt.Printf("%d total cipher letters\n", len(solved.cipherLetters))
 
 	// find all the dictionary words "shapes", and match up the letters with
 	// those shapes.
@@ -67,7 +76,7 @@ func main() {
 					if unicode.IsPunct(cipherLetter) {
 						continue
 					}
-					if sl, ok := solvedLetters[cipherLetter]; ok {
+					if sl, ok := solved.solvedLetters[cipherLetter]; ok {
 						// This cipher letter has a clear text letter
 						possibleLetters[cipherLetter] = make(map[rune]bool)
 						possibleLetters[cipherLetter][sl] = true
@@ -136,14 +145,16 @@ func main() {
 
 		printSortedPossible(possibleLetters)
 
-		shapeMatches := cwMustMatch(solvedLetters, puzzlewords, possibleLetters, *verbose)
-		shapeDict = weedShapeDict(solvedLetters, shapeDict, shapeMatches, *verbose)
+		shapeMatches := cwMustMatch(solved.solvedLetters, puzzlewords, possibleLetters, *verbose)
+		shapeDict = weedShapeDict(solved.solvedLetters, shapeDict, shapeMatches, *verbose)
 		allLetters = qp.NewRunesDict(shapeDict)
 
 		// remove solved letters from allLetters
-		removeLetters(solvedLetters, allLetters)
+		removeLetters(&solved, allLetters)
 
-		printSolvedLetters(cipherLetters, solvedLetters)
+		printSolvedLetters(solved.cipherLetters, solved.solvedLetters)
+
+		// TODO - print puzzle with solution so far
 
 		fmt.Printf("---end cycle %d---\n\n", cycle)
 	}
@@ -303,8 +314,9 @@ func weedShapeDict(solvedLetters map[rune]rune, shapeDict map[string][]string, s
 				for word, _ := range shapeMatches {
 					fmt.Printf("\t%s\n", word)
 				}
-
 			}
+			// TODO see if some letter(s) are the same in the same position of all words
+
 		}
 		if len(shapeMatches) == 1 {
 			// we can match all the letters in sm.cipherWord
@@ -379,7 +391,9 @@ func printSolvedLetters(cipherLetters []rune, mrr map[rune]rune) {
 	fmt.Println()
 }
 
-func removeLetters(solvedLetters map[rune]rune, allLetters map[string]*qp.Entry) {
+// removeLetters takes out solved letters so that they don't clutter
+// the possible letters
+func removeLetters(solved *Solved, allLetters map[string]*qp.Entry) {
 	/*
 		type Entry struct {
 		    Length int
