@@ -17,6 +17,8 @@ type Entry struct {
 	Runes  map[int]map[rune]bool
 	// Runes[0] are all the dictionary words' first letters.
 	// the first letters are keys in the map-that-is-the-value
+	// Runes[1] are all the dictionary words with this shape 2nd letters,
+	// Runes[2] are the 3rd letters from dictionary words with this shape, etc
 }
 
 // NewShapeDict composes a map keyed by configuration. values are
