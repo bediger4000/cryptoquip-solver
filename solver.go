@@ -130,7 +130,7 @@ func main() {
 		printSortedPossible(possibleLetters)
 
 		shapeMatches := cwMustMatch(&solved, puzzlewords, possibleLetters, *verbose)
-		shapeDict = weedShapeDict(&solved, shapeDict, shapeMatches, *verbose)
+		shapeDict = weedShapeDict(puzzlewords, &solved, shapeDict, shapeMatches, *verbose)
 		allLetters = qp.NewRunesDict(shapeDict)
 
 		printSolvedLetters(solved.cipherLetters, solved.solvedLetters)
@@ -320,7 +320,7 @@ func cwMustMatch(solved *Solved, puzzlewords [][]byte, possibleLetters map[rune]
 	return smatches
 }
 
-func weedShapeDict(solved *Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
+func weedShapeDict(puzzlewords [][]byte, solved *Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
 
 	newShapeDict := make(map[string][]string)
 
@@ -404,6 +404,18 @@ func weedShapeDict(solved *Solved, shapeDict map[string][]string, shapeMatches [
 				}
 			}
 		}
+	}
+	if verbose {
+		wordCount := 0
+		for _, words := range shapeDict {
+			wordCount += len(words)
+		}
+		fmt.Printf("old shape dictionary has %d shapes, %d words\n", len(shapeDict), wordCount)
+		wordCount = 0
+		for _, words := range newShapeDict {
+			wordCount += len(words)
+		}
+		fmt.Printf("new shape dictionary has %d shapes, %d words\n", len(newShapeDict), wordCount)
 	}
 	return newShapeDict
 }
