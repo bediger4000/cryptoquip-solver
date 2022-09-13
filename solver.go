@@ -22,6 +22,7 @@ func main() {
 	dictName := flag.String("d", "/usr/share/dict/words", "cleartext dictionary")
 	puzzleName := flag.String("p", "", "puzzle file name")
 	verbose := flag.Bool("v", false, "verbose output")
+	cycles := flag.Int("c", 4, "number of cycles to attempt")
 	flag.Parse()
 
 	shapeDict, err := qp.NewShapeDict(*dictName)
@@ -55,7 +56,7 @@ func main() {
 	// "goober" would add
 	allLetters := qp.NewRunesDict(shapeDict)
 
-	for cycle := 0; cycle < 4; cycle++ {
+	for cycle := 0; cycle < *cycles; cycle++ {
 
 		fmt.Printf("---start cycle %d---\n\n", cycle)
 
@@ -78,6 +79,9 @@ func main() {
 					}
 					if sl, ok := solved.solvedLetters[cipherLetter]; ok {
 						// This cipher letter has a clear text letter
+						if *verbose {
+							fmt.Printf("cipher letter %c already has a solved clear text letter %c\n", cipherLetter, sl)
+						}
 						possibleLetters[cipherLetter] = make(map[rune]bool)
 						possibleLetters[cipherLetter][sl] = true
 						continue
@@ -106,10 +110,7 @@ func main() {
 						for newLetter, _ := range entry.Runes[i] {
 							possibleLetters[cipherLetter][newLetter] = true
 						}
-						fmt.Printf("cipher letter %c starts with %d clear letters\n", cipherLetter, len(possibleLetters[cipherLetter]))
-						if *verbose {
-							printLetters(cipherLetter, "initially associated with", possibleLetters[cipherLetter])
-						}
+						printLetters(cipherLetter, "begins cycle with", possibleLetters[cipherLetter])
 					}
 				}
 				fmt.Println()
@@ -125,32 +126,12 @@ func main() {
 				counts[l]++
 			}
 		}
-		for l, count := range counts {
-			if count == 1 {
-				// there's only a single letter with value in l.
-				// Rid the cipher letter it's associated with of all other clear letters
-				fmt.Printf("%c only appears once\n", l)
-				for cipherletter, possibles := range possibleLetters {
-					if possibles[l] {
-						fmt.Printf("singleton clear text letter %c associated with cipher letter %c\n", l, cipherletter)
-						single := make(map[rune]bool)
-						single[l] = true
-						possibleLetters[cipherletter] = single
-						break // don't have to look for other cipherletters
-					}
-				}
-				// don't have to remove it from other cipherletter's clear letters
-			}
-		}
 
 		printSortedPossible(possibleLetters)
 
-		shapeMatches := cwMustMatch(solved.solvedLetters, puzzlewords, possibleLetters, *verbose)
-		shapeDict = weedShapeDict(solved.solvedLetters, shapeDict, shapeMatches, *verbose)
+		shapeMatches := cwMustMatch(&solved, puzzlewords, possibleLetters, *verbose)
+		shapeDict = weedShapeDict(&solved, shapeDict, shapeMatches, *verbose)
 		allLetters = qp.NewRunesDict(shapeDict)
-
-		// remove solved letters from allLetters
-		removeLetters(&solved, allLetters)
 
 		printSolvedLetters(solved.cipherLetters, solved.solvedLetters)
 
@@ -235,7 +216,10 @@ type lrange struct {
 	end   rune
 }
 
-func composeRegexp(m map[rune]bool) string {
+// composeRegexpForLetter makes a regular expression that matches a single
+// cleartext letter from map m, which contains all of the letters that
+// a cipher letter represents.
+func composeRegexpForLetter(solved *Solved, cipherLetter rune, m map[rune]bool) string {
 	if len(m) == 0 {
 		return ""
 	}
@@ -244,8 +228,20 @@ func composeRegexp(m map[rune]bool) string {
 			return fmt.Sprintf("%c", l)
 		}
 	}
+
+	// If this cipher letter is already solved, put clear letter in as the
+	// regular expression.
+	if sl, ok := solved.solvedLetters[cipherLetter]; ok {
+		return fmt.Sprintf("%c", sl)
+	}
+
 	var letters []rune
 	for l, _ := range m {
+		// l is potentially the solution for cipherLetter
+		if _, ok := solved.clearLetters[l]; ok {
+			// clear letter l is already known a match for some other cipher letter
+			continue
+		}
 		letters = append(letters, l)
 	}
 	sort.Sort(RuneSlice(letters))
@@ -287,11 +283,10 @@ type shapeMatch struct {
 	cipherWord    string
 	configuration string
 	pattern       string
-	rgxp          *regexp.Regexp
 }
 
 // compose regular expressions that cipherwords must match
-func cwMustMatch(solvedLetters map[rune]rune, puzzlewords [][]byte, possibleLetters map[rune]map[rune]bool, verbose bool) []*shapeMatch {
+func cwMustMatch(solved *Solved, puzzlewords [][]byte, possibleLetters map[rune]map[rune]bool, verbose bool) []*shapeMatch {
 
 	var smatches []*shapeMatch
 
@@ -301,17 +296,17 @@ func cwMustMatch(solvedLetters map[rune]rune, puzzlewords [][]byte, possibleLett
 		cwregexp := "^"
 		for _, b := range cipherword {
 			r := rune(b)
-			if sl, ok := solvedLetters[r]; ok {
+			if sl, ok := solved.solvedLetters[r]; ok {
 				cipherLetterRegexps[r] = fmt.Sprintf("%c", sl)
 			} else if _, ok := cipherLetterRegexps[r]; !ok {
-				cipherLetterRegexps[r] = composeRegexp(possibleLetters[r])
+				cipherLetterRegexps[r] = composeRegexpForLetter(solved, r, possibleLetters[r])
 			}
 			clregexp := cipherLetterRegexps[r]
 			cwregexp += clregexp
 		}
 		cwregexp += "$"
 		if verbose {
-			fmt.Printf("%q must match '%s'\n", cipherword, cwregexp)
+			fmt.Printf("cipher word %q must match regexp '%s'\n", cipherword, cwregexp)
 		}
 		str := string(cipherword)
 		smatches = append(smatches,
@@ -325,7 +320,7 @@ func cwMustMatch(solvedLetters map[rune]rune, puzzlewords [][]byte, possibleLett
 	return smatches
 }
 
-func weedShapeDict(solvedLetters map[rune]rune, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
+func weedShapeDict(solved *Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
 
 	newShapeDict := make(map[string][]string)
 
@@ -348,12 +343,11 @@ func weedShapeDict(solvedLetters map[rune]rune, shapeDict map[string][]string, s
 		}
 		if verbose {
 			fmt.Printf("cipherword %q could be %d dictionary words\n", sm.cipherWord, len(shapeMatches))
-			if len(shapeMatches) < 6 {
+			if len(shapeMatches) < 11 {
 				for word, _ := range shapeMatches {
 					fmt.Printf("\t%s\n", word)
 				}
 			}
-			// TODO see if some letter(s) are the same in the same position of all words
 
 		}
 		if len(shapeMatches) == 1 {
@@ -374,7 +368,7 @@ func weedShapeDict(solvedLetters map[rune]rune, shapeDict map[string][]string, s
 			soleMatchRunes := []rune(soleMatch)
 			for idx, cl := range sm.cipherWord {
 				sl2 := soleMatchRunes[idx]
-				if sl1, ok := solvedLetters[cl]; ok {
+				if sl1, ok := solved.solvedLetters[cl]; ok {
 					// sl2 and sl1 should be identical, otherwise there's a problem
 					if sl1 != sl2 {
 						fmt.Printf("PROBLEM: %c != %c at %d in %q and %q\n",
@@ -384,10 +378,29 @@ func weedShapeDict(solvedLetters map[rune]rune, shapeDict map[string][]string, s
 						)
 					}
 				} else {
-					if verbose {
-						fmt.Printf("\tcipher letter %c solved as %c\n", cl, sl2)
+					solved.SetSolved(cl, sl2, verbose)
+				}
+			}
+		} else if len(shapeMatches) > 1 {
+			// See if some letter(s) are the same in the same position of all words
+			letters := make([]map[rune]bool, 0)
+			for word, _ := range shapeMatches {
+				for idx, r := range word {
+					if idx >= len(letters) {
+						letters = append(letters, make(map[rune]bool))
 					}
-					solvedLetters[cl] = sl2
+					letters[idx][r] = true
+				}
+			}
+			for idx, m := range letters {
+				if len(m) == 1 {
+					// There is only one cleartext letter at position idx
+					// in all of the matching-shape-words.
+					var c rune
+					for c, _ = range m {
+					}
+					fmt.Printf("At position %d in shape matches, cipher letter %c, only 1 clear letter: %c\n", idx, sm.cipherWord[idx], c)
+					solved.SetSolved(rune(sm.cipherWord[idx]), c, verbose)
 				}
 			}
 		}
@@ -429,17 +442,26 @@ func printSolvedLetters(cipherLetters []rune, mrr map[rune]rune) {
 	fmt.Println()
 }
 
-// removeLetters takes out solved letters so that they don't clutter
-// the possible letters
-func removeLetters(solved *Solved, allLetters map[string]*qp.Entry) {
-	/*
-		type Entry struct {
-		    Length int
-		    Runes  map[int]map[rune]bool
-		    // Runes[0] are all the dictionary words' first letters.
-		    // the first letters are keys in the map-that-is-the-value
-		    // Runes[1] are all the dictionary words with this shape 2nd letters,
-		    // Runes[2] are the 3rd letters from dictionary words with this shape, etc
+/*
+type Solved struct {
+	cipherLetters []rune        // alphabetized slice of cipherletters
+	solvedLetters map[rune]rune // cipherletter key to clear text letter value
+	clearLetters  map[rune]bool // all the clear letters so far
+}
+*/
+func (s *Solved) SetSolved(cipherLetter, clearLetter rune, verbose bool) {
+	if prevClear, ok := s.solvedLetters[cipherLetter]; ok {
+		if clearLetter == prevClear {
+			// Already had this as a solved letter pair
+			return
 		}
-	*/
+		fmt.Printf("PROBLEM: setting cipher letter %c to clear letter %c, already had a clear letter %c\n",
+			cipherLetter, clearLetter, prevClear,
+		)
+		os.Exit(1)
+	}
+	s.solvedLetters[cipherLetter] = clearLetter
+	if verbose {
+		fmt.Printf("\tcipher letter %c solved as %c\n", cipherLetter, clearLetter)
+	}
 }
