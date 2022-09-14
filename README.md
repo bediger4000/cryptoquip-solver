@@ -18,6 +18,49 @@ https://www.quipqiup.com
 
 https://rumkin.com/tools/cipher/cryptogram-solver/
 
+## Building and Running
+
+
+```sh
+$ cd $GOPATH/src
+$ git clone https://github.com/bediger4000/cryptoquip-solver.git cryptoquip
+$ cd cryptoquip
+$ go build solver.go
+```
+
+You need to type in a Cryptoquip from a newspaper or something.
+It should look a little like this:
+
+```
+x=g
+tkdcfq pcdygjkv bec ucwyq zoyzkojvx dyks bjse k wyor qujxesur qzcjuyg tukwco
+```
+
+The "x=g" line is the hint the daily cryptoquip gives.
+
+After that, you can run the program:
+
+```sh
+$ ./solver -p puzzle.in -v > puzzle.out
+```
+
+The `-v` flag gives very verbose output that will help you see what the program does.
+
+## The Program Will Have Problems
+
+If the answer to the Cryptoquip includes a word that isn't in the dictionary,
+my program will probably not find a solution.
+It will find words of the same "shape" as the non-dictionary enciphered word,
+but that may not include the correct clear text letter at in the set of clear text
+letters corresponding to some enciphered letter.
+
+This can show up as enciphered letters that don't get a single clear text letter
+as a solution even after many cycles through the algorithm.
+
+It can also show up as an enciphered letter that has at least 2 
+"single" clear text letters when correlating regular expression matches.
+See below.
+
 ## Method of Solving
 
 Cryptoquips are plain alphabetic replacement ciphers.
@@ -129,4 +172,13 @@ it has already found when it creates new regular expressions.
 This causes regular expressions derived from the enciphered words to match fewer same-shape words from
 the clear text dictionary.
 
-It does cycle through the process more than once.
+It does cycle through the process more than once. _Go to Begin Cycle_
+
+My program only finds a partial solution to the puzzle above:
+
+```
+tqlp ypdily qdfl xql glyuhl xr yqrt xqluh ohdxlzsvplyy gr crs xqupi xqlc tuvv oufl zdpoy
+?hen snakes ha?e the desire t? sh?? their gratefulness d? ??u think the? ?ill gi?e fangs
+```
+
+It will find complete solutions to many Cryptoquips, however.
