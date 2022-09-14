@@ -393,7 +393,7 @@ func weedShapeDict(solved *Solved, shapeDict map[string][]string, shapeMatches [
 				if sl1, ok := solved.solvedLetters[cl]; ok {
 					// sl2 and sl1 should be identical, otherwise there's a problem
 					if sl1 != sl2 {
-						fmt.Printf("PROBLEM: %c != %c at %d in %q and %q\n",
+						fmt.Printf("PROBLEM: %c != %c at position %d in %q and %q\n",
 							sl1, sl2,
 							idx,
 							soleMatch, sm.cipherWord,
@@ -445,30 +445,6 @@ func weedShapeDict(solved *Solved, shapeDict map[string][]string, shapeMatches [
 		fmt.Printf("new shape dictionary has %d shapes, %d words\n", len(newShapeDict), wordCount)
 	}
 
-	// Correlate allowable letters found via regexps across all the cipher letters
-	// Look through lettersFromRgxp to see if anything new gets solved
-
-	// see if any cipher letters have single clear letters
-	clearLetterCount := make(map[rune]int)
-	for _, clearLetters := range lettersFromRgxp {
-		for cl, _ := range clearLetters {
-			clearLetterCount[cl]++
-		}
-	}
-	// if any clear letters appear once, then we can eliminate them from
-	// any other cipher letter's letters-from-regexps
-	for clearLetter, count := range clearLetterCount {
-		if count == 1 {
-			// eliminate clearLetter from all of the cipher letter's letters-from-regexps
-			for cipherLetter, clearLetters := range lettersFromRgxp {
-				if len(clearLetters) > 1 && clearLetters[clearLetter] {
-					fmt.Printf("deleting singleton clear letter %c from cipher letter %c letters-from-regexps\n", clearLetter, cipherLetter)
-					delete(clearLetters, clearLetter)
-				}
-			}
-		}
-	}
-	// elimate any singleton clear letters from solved
 	for cipherLetter, clearLetters := range lettersFromRgxp {
 		if len(clearLetters) == 1 {
 			for clearLetter, _ := range clearLetters {
@@ -530,7 +506,7 @@ func (s *Solved) SetSolved(cipherLetter, clearLetter rune, verbose bool) {
 		fmt.Printf("PROBLEM: setting cipher letter %c to clear letter %c, already had a clear letter %c\n",
 			cipherLetter, clearLetter, prevClear,
 		)
-		os.Exit(1)
+		return
 	}
 	s.solvedLetters[cipherLetter] = clearLetter
 	s.clearLetters[clearLetter] = true
