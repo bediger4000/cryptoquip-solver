@@ -56,7 +56,7 @@ func main() {
 	// "goober" would add
 	allLetters := qp.NewRunesDict(shapeDict)
 
-	for cycle := 0; cycle < *cycles; cycle++ {
+	for cycle := 0; len(solved.cipherLetters) > len(solved.solvedLetters) && cycle < *cycles; cycle++ {
 
 		fmt.Printf("---start cycle %d---\n\n", cycle)
 
@@ -130,7 +130,7 @@ func main() {
 		printSortedPossible(possibleLetters)
 
 		shapeMatches := cwMustMatch(&solved, puzzlewords, possibleLetters, *verbose)
-		shapeDict = weedShapeDict(puzzlewords, &solved, shapeDict, shapeMatches, *verbose)
+		shapeDict = weedShapeDict(&solved, shapeDict, shapeMatches, *verbose)
 		allLetters = qp.NewRunesDict(shapeDict)
 
 		printSolvedLetters(solved.cipherLetters, solved.solvedLetters)
@@ -194,6 +194,11 @@ func printSortedPossible(possibleLetters map[rune]map[rune]bool) {
 func printLetters(cipherLetter rune, format string, m map[rune]bool) {
 	ln := len(m)
 	fmt.Printf("cipher letter %c %s (%d):", cipherLetter, format, ln)
+	sortThenPrint(m)
+}
+
+func sortThenPrint(m map[rune]bool) {
+
 	var letters []rune
 	for l, _ := range m {
 		letters = append(letters, l)
@@ -320,9 +325,13 @@ func cwMustMatch(solved *Solved, puzzlewords [][]byte, possibleLetters map[rune]
 	return smatches
 }
 
-func weedShapeDict(puzzlewords [][]byte, solved *Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
+func weedShapeDict(solved *Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
 
 	newShapeDict := make(map[string][]string)
+
+	// map keyed by cipher letter, values are slices of runes
+	// that match that cipher letter
+	lettersFromRgxp := make(map[rune]map[rune]bool)
 
 	for _, sm := range shapeMatches {
 		rgxp, err := regexp.Compile(sm.pattern)
@@ -339,6 +348,19 @@ func weedShapeDict(puzzlewords [][]byte, solved *Solved, shapeDict map[string][]
 					shapeWord,
 				)
 				shapeMatches[shapeWord] = true
+
+				for idx, sl := range shapeWord {
+					// sl cleartext letter could solve sm.cipherWord[idx]
+					// make(map[rune]map[rune]bool)
+					if ltrs, ok := lettersFromRgxp[rune(sm.cipherWord[idx])]; ok {
+						// seen this cipher letter before
+						ltrs[sl] = true
+					} else {
+						ltrs = make(map[rune]bool)
+						ltrs[sl] = true
+						lettersFromRgxp[rune(sm.cipherWord[idx])] = ltrs
+					}
+				}
 			}
 		}
 		if verbose {
@@ -405,7 +427,12 @@ func weedShapeDict(puzzlewords [][]byte, solved *Solved, shapeDict map[string][]
 			}
 		}
 	}
+
 	if verbose {
+		for r, ltrs := range lettersFromRgxp {
+			fmt.Printf("cipher letter %c clear letters from regexps: ", r)
+			sortThenPrint(ltrs)
+		}
 		wordCount := 0
 		for _, words := range shapeDict {
 			wordCount += len(words)
@@ -417,6 +444,39 @@ func weedShapeDict(puzzlewords [][]byte, solved *Solved, shapeDict map[string][]
 		}
 		fmt.Printf("new shape dictionary has %d shapes, %d words\n", len(newShapeDict), wordCount)
 	}
+
+	// Correlate allowable letters found via regexps across all the cipher letters
+	// Look through lettersFromRgxp to see if anything new gets solved
+
+	// see if any cipher letters have single clear letters
+	clearLetterCount := make(map[rune]int)
+	for _, clearLetters := range lettersFromRgxp {
+		for cl, _ := range clearLetters {
+			clearLetterCount[cl]++
+		}
+	}
+	// if any clear letters appear once, then we can eliminate them from
+	// any other cipher letter's letters-from-regexps
+	for clearLetter, count := range clearLetterCount {
+		if count == 1 {
+			// eliminate clearLetter from all of the cipher letter's letters-from-regexps
+			for cipherLetter, clearLetters := range lettersFromRgxp {
+				if len(clearLetters) > 1 && clearLetters[clearLetter] {
+					fmt.Printf("deleting singleton clear letter %c from cipher letter %c letters-from-regexps\n", clearLetter, cipherLetter)
+					delete(clearLetters, clearLetter)
+				}
+			}
+		}
+	}
+	// elimate any singleton clear letters from solved
+	for cipherLetter, clearLetters := range lettersFromRgxp {
+		if len(clearLetters) == 1 {
+			for clearLetter, _ := range clearLetters {
+				solved.SetSolved(cipherLetter, clearLetter, verbose)
+			}
+		}
+	}
+
 	return newShapeDict
 }
 
@@ -473,6 +533,7 @@ func (s *Solved) SetSolved(cipherLetter, clearLetter rune, verbose bool) {
 		os.Exit(1)
 	}
 	s.solvedLetters[cipherLetter] = clearLetter
+	s.clearLetters[clearLetter] = true
 	if verbose {
 		fmt.Printf("\tcipher letter %c solved as %c\n", cipherLetter, clearLetter)
 	}
