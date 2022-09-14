@@ -4,7 +4,7 @@ King Features has a daily cipher puzzle
 called [Cryptoquip](https://weekly.kingfeatures.com/?team=games-and-puzzles)
 that might run in your newspaper.
 
-![Example Cryptoquip]()
+![Example Cryptoquip](cq.png)
 
 People like this sort of thing enough that [books full](https://www.amazon.com/cryptoquip/s?k=cryptoquip)
 of Cryptoquips exist.
