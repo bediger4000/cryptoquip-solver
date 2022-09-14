@@ -110,6 +110,13 @@ func main() {
 						for newLetter, _ := range entry.Runes[i] {
 							possibleLetters[cipherLetter][newLetter] = true
 						}
+						// leave already solved cipher-letter-solutions out of possibleLetters
+						for cl, sl := range solved.solvedLetters {
+							if cl == cipherLetter {
+								continue
+							}
+							delete(possibleLetters[cipherLetter], sl)
+						}
 						printLetters(cipherLetter, "begins cycle with", possibleLetters[cipherLetter])
 					}
 				}
@@ -119,15 +126,8 @@ func main() {
 			}
 		}
 
-		// Determine if some letter(s) only appear in one cipher letter's list
-		counts := make(map[rune]int)
-		for _, possibles := range possibleLetters {
-			for l, _ := range possibles {
-				counts[l]++
-			}
-		}
-
 		printSortedPossible(possibleLetters)
+		markSingleSolvedLettes(&solved, possibleLetters, *verbose)
 
 		shapeMatches := cwMustMatch(&solved, puzzlewords, possibleLetters, *verbose)
 		shapeDict = weedShapeDict(&solved, shapeDict, shapeMatches, *verbose)
@@ -536,5 +536,19 @@ func (s *Solved) SetSolved(cipherLetter, clearLetter rune, verbose bool) {
 	s.clearLetters[clearLetter] = true
 	if verbose {
 		fmt.Printf("\tcipher letter %c solved as %c\n", cipherLetter, clearLetter)
+	}
+}
+
+// markSingleSolvedLettes trys to mark as solved any cipher letters that
+// have a single possible letter left. Var possibleLetters contains the
+// clear text letters left after intersecting the possible letters from
+// the shape-keyed dictionary.
+func markSingleSolvedLettes(solved *Solved, possibleLetters map[rune]map[rune]bool, verbose bool) {
+	for cipherLetter, letters := range possibleLetters {
+		if len(letters) == 1 {
+			for singleLetter, _ := range letters {
+				solved.SetSolved(cipherLetter, singleLetter, verbose)
+			}
+		}
 	}
 }
