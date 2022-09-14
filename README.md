@@ -9,7 +9,7 @@ that might run in your newspaper.
 People like this sort of thing enough that [books full](https://www.amazon.com/cryptoquip/s?k=cryptoquip)
 of Cryptoquips exist.
 
-The Cecil (Maryland) Whig newspaper seems to have a good [online archive of recent cryptoquips](https://www.cecildaily.com/diversions/cryptoquip/).
+The Cecil (Maryland) Daily Whig newspaper seems to have a good [online archive of recent cryptoquips](https://www.cecildaily.com/diversions/cryptoquip/).
 I find this strange.
 
 There are several other solvers available that may suit your needs better.
@@ -60,6 +60,11 @@ as a solution even after many cycles through the algorithm.
 It can also show up as an enciphered letter that has at least 2 
 "single" clear text letters when correlating regular expression matches.
 See below.
+
+Sometimmes the presence of a single word can cause the program problems.
+Removing "xor" from my dictionary of clear text words let my program
+solve all of some cryptoquips,
+where it previously could not find the clear text solution to one cipher letter.
 
 ## Method of Solving
 
