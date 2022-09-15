@@ -68,7 +68,7 @@ where it previously could not find the clear text solution to one cipher letter.
 
 ## Method of Solving
 
-Cryptoquips are plain alphabetic replacement ciphers.
+Cryptoquips are simple alphabetic replacement ciphers.
 They're not quite as simple as a [Caesar cipher](https://en.wikipedia.org/wiki/Caesar_cipher)
 in that if cipher letter A corresponds to clear text letter M,
 a Cryptoquip's cipher letter B doesn't necessarily correspond to clear text letter N.
