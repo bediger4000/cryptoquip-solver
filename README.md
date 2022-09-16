@@ -58,6 +58,15 @@ $ ./encoder input.txt > ciphertext.out
 The ciphertext output shows you the clear-to-cipher letter correspondence,
 and helpfully puts in all possible "x=y" hints as comments.
 
+### Find dictionary words by shape
+
+```sh
+$ go build findbykey.go
+$ ./findbykey words footballer
+```
+
+See what dictionary words match (by "shape") specified words.
+
 ## The Program Will Have Problems
 
 If the answer to the Cryptoquip includes a word that isn't in the dictionary,
