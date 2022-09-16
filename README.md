@@ -46,6 +46,18 @@ $ ./solver -p puzzle.in -v > puzzle.out
 
 The `-v` flag gives very verbose output that will help you see what the program does.
 
+### Encoder
+
+I also include a mono-alphabetic cipher construction and encoder.
+
+```sh
+$ go build encoder.go
+$ ./encoder input.txt > ciphertext.out
+```
+
+The ciphertext output shows you the clear-to-cipher letter correspondence,
+and helpfully puts in all possible "x=y" hints as comments.
+
 ## The Program Will Have Problems
 
 If the answer to the Cryptoquip includes a word that isn't in the dictionary,
