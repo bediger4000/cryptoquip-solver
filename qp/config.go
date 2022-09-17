@@ -8,10 +8,14 @@ func StringConfiguration(line string) string {
 	idx := 0
 
 	ln := len(line)
+	if ln >= 3 && line[ln-1] == 'l' && line[ln-2] == 'l' && line[ln-3] == '\'' {
+		line = line[:ln-3]
+		ln = len(line)
+	}
 	if ln >= 2 && line[ln-1] == 's' && line[ln-2] == '\'' {
 		line = line[:ln-2]
+		ln = len(line)
 	}
-	ln = len(line)
 	if line[ln-1] == '\'' {
 		line = line[:ln-1]
 	}
