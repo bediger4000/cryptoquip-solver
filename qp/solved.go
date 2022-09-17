@@ -25,6 +25,10 @@ func (s *Solved) SetSolved(cipherLetter, clearLetter rune) {
 		)
 		return
 	}
+	if s.ClearLetters[clearLetter] {
+		fmt.Printf("PROBLEM: cipher letter %c proposed solution %c, %c already a solution\n", cipherLetter, clearLetter, clearLetter)
+		return
+	}
 	s.SolvedLetters[cipherLetter] = clearLetter
 	s.ClearLetters[clearLetter] = true
 	if s.Verbose {
