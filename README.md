@@ -44,6 +44,17 @@ After that, you can run the program:
 $ ./solver -p puzzle.in -v > puzzle.out
 ```
 
+The default clear text dictionary is `/usr/share/dict/words`.
+You may need to install that, it sometimes isn't in a distro's default packages.
+I also find that `/usr/share/dict/words` has far too many not-really-words,
+like lists of lower-case Roman numerals.
+Apparently `words` intended use case is spell-checkers,
+and folks don't like it flagging the lower-case Roman numerals used on forewards.
+I've noticed that larger dictionaries don't give better results with my
+[Jumble Solver](https://github.com/bediger4000/jumble-solver) either.
+I don't know if this is a general, information-theoretic problem,
+or if I've just stumbled across two peculiar cases.
+
 The `-v` flag gives very verbose output that will help you see what the program does.
 
 ### Encoder
@@ -57,6 +68,9 @@ $ ./encoder input.txt > ciphertext.out
 
 The ciphertext output shows you the clear-to-cipher letter correspondence,
 and helpfully puts in all possible "x=y" hints as comments.
+
+You can construct your own Cryptoquips,
+and have the fun of solving a puzzle that you already have an answer for.
 
 ### Find dictionary words by shape
 
