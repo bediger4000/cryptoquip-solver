@@ -32,7 +32,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
 
 	solved := &qp.Solved{
 		SolvedLetters: make(map[rune]rune),
@@ -40,7 +39,10 @@ func main() {
 		CipherLetters: cipherLetters,
 		Verbose:       *verbose,
 	}
-	solved.SetSolved(cipherHint, clearHint)
+	if cipherHint != 0 && clearHint != 0 {
+		fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
+		solved.SetSolved(cipherHint, clearHint)
+	}
 	fmt.Printf("%d total cipher letters\n", len(solved.CipherLetters))
 
 	// find all the dictionary words "shapes", and match up the letters with
