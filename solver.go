@@ -28,21 +28,19 @@ func main() {
 		log.Fatal("need a puzzle file name")
 	}
 
-	puzzlewords, enciphered, clear, err := qp.ReadPuzzle(*puzzleName, *verbose)
+	puzzlewords, cipherLetters, cipherHint, clearHint, err := qp.ReadPuzzle(*puzzleName, *verbose)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Hint: %c = %c\n\n", enciphered, clear)
+	fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
 
-	var solved qp.Solved
-
-	// Keep track of solved letters in a map.
-	// Keys are cipher letters, values are the corresponding cleartext letters
-	solved.SolvedLetters = make(map[rune]rune)
-	solved.ClearLetters = make(map[rune]bool)
-	solved.SolvedLetters[enciphered] = clear
-	solved.CipherLetters = sortOutCiperLetters(puzzlewords)
-	solved.Verbose = *verbose
+	solved := &qp.Solved{
+		SolvedLetters: make(map[rune]rune),
+		ClearLetters:  make(map[rune]bool),
+		CipherLetters: cipherLetters,
+		Verbose:       *verbose,
+	}
+	solved.SetSolved(cipherHint, clearHint)
 	fmt.Printf("%d total cipher letters\n", len(solved.CipherLetters))
 
 	// find all the dictionary words "shapes", and match up the letters with
@@ -122,16 +120,16 @@ func main() {
 		}
 
 		printSortedPossible(possibleLetters)
-		markSingleSolvedLettes(&solved, possibleLetters, *verbose)
+		markSingleSolvedLettes(solved, possibleLetters, *verbose)
 
-		shapeMatches := cwMustMatch(&solved, puzzlewords, possibleLetters, *verbose)
-		shapeDict = weedShapeDict(&solved, shapeDict, shapeMatches, *verbose)
+		shapeMatches := cwMustMatch(solved, puzzlewords, possibleLetters, *verbose)
+		shapeDict = weedShapeDict(solved, shapeDict, shapeMatches, *verbose)
 		allLetters = qp.NewRunesDict(shapeDict)
 
 		printSolvedLetters(solved.CipherLetters, solved.SolvedLetters)
 
 		fmt.Println("\nSolved Puzzle:")
-		printSolvedWords(puzzlewords, &solved)
+		printSolvedWords(puzzlewords, solved)
 
 		fmt.Printf("---end cycle %d---\n\n", cycle)
 	}
@@ -179,7 +177,7 @@ func printSortedPossible(possibleLetters map[rune]map[rune]bool) {
 	for cipherLetter, _ := range possibleLetters {
 		keys = append(keys, cipherLetter)
 	}
-	sort.Sort(RuneSlice(keys))
+	sort.Sort(qp.RuneSlice(keys))
 
 	for i := range keys {
 		printLetters(keys[i], "", possibleLetters[keys[i]])
@@ -198,18 +196,12 @@ func sortThenPrint(m map[rune]bool) {
 	for l, _ := range m {
 		letters = append(letters, l)
 	}
-	sort.Sort(RuneSlice(letters))
+	sort.Sort(qp.RuneSlice(letters))
 	for i := range letters {
 		fmt.Printf(" %c", letters[i])
 	}
 	fmt.Println()
 }
-
-type RuneSlice []rune
-
-func (rs RuneSlice) Len() int           { return len(rs) }
-func (rs RuneSlice) Less(i, j int) bool { return rs[i] < rs[j] }
-func (rs RuneSlice) Swap(i, j int)      { rs[i], rs[j] = rs[j], rs[i] }
 
 type lrange struct {
 	begin rune
@@ -221,6 +213,7 @@ type lrange struct {
 // a cipher letter represents.
 func composeRegexpForLetter(solved *qp.Solved, cipherLetter rune, m map[rune]bool) string {
 	if len(m) == 0 {
+		// should this be an error? should it get logged?
 		return ""
 	}
 	if len(m) == 1 {
@@ -244,7 +237,7 @@ func composeRegexpForLetter(solved *qp.Solved, cipherLetter rune, m map[rune]boo
 		}
 		letters = append(letters, l)
 	}
-	sort.Sort(RuneSlice(letters))
+	sort.Sort(qp.RuneSlice(letters))
 
 	var ranges []*lrange
 	var currRange = &lrange{
@@ -451,26 +444,8 @@ func weedShapeDict(solved *qp.Solved, shapeDict map[string][]string, shapeMatche
 	return newShapeDict
 }
 
-// sortOutCiperLetters creates a sorted array of all
-// the runes in the puzzle.
-func sortOutCiperLetters(puzzlewords [][]byte) []rune {
-	m := make(map[rune]bool)
-	for _, word := range puzzlewords {
-		for _, r := range word {
-			m[rune(r)] = true
-		}
-	}
-	cipherLetters := make([]rune, 0, len(m))
-	for r, _ := range m {
-		cipherLetters = append(cipherLetters, r)
-	}
-	sort.Sort(RuneSlice(cipherLetters))
-	return cipherLetters
-}
-
 func printSolvedLetters(cipherLetters []rune, mrr map[rune]rune) {
 	fmt.Printf("\nSolved letters:\n")
-
 	for i := range cipherLetters {
 		fmt.Printf("%c ", cipherLetters[i])
 	}
