@@ -2,6 +2,7 @@ package qp
 
 import "fmt"
 
+// Solved holds information about cipher letters and their solutions
 type Solved struct {
 	CipherLetters []rune        // alphabetized slice of cipherletters
 	SolvedLetters map[rune]rune // cipherletter key to clear text letter value
@@ -9,6 +10,10 @@ type Solved struct {
 	Verbose       bool
 }
 
+// SetSolved associates a clear text letter to a cipher text letter.
+// It will reject associating a 2nd, different, clear text letter
+// to a cipher letter. You can associate a particular clear text
+// letter to a cipher letter repeatedly without problems.
 func (s *Solved) SetSolved(cipherLetter, clearLetter rune) {
 	if prevClear, ok := s.SolvedLetters[cipherLetter]; ok {
 		if clearLetter == prevClear {
