@@ -4,19 +4,21 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"sort"
 )
 
-func ReadPuzzle(fileName string, verbose bool) ([][]byte, rune, rune, error) {
+func ReadPuzzle(fileName string, verbose bool) ([][]byte, []rune, rune, rune, error) {
 	buf, err := os.ReadFile(fileName)
 	if err != nil {
 		if verbose {
 			fmt.Fprintf(os.Stderr, "reading file %s: %v\n", fileName, err)
 		}
-		return nil, ' ', ' ', err
+		return nil, nil, ' ', ' ', err
 	}
 
 	var words [][]byte
 	var enciphered, clear rune
+	letters := make(map[rune]bool)
 
 	for _, line := range bytes.Split(buf, []byte{'\n'}) {
 		line = bytes.TrimSpace(line)
@@ -40,11 +42,19 @@ func ReadPuzzle(fileName string, verbose bool) ([][]byte, rune, rune, error) {
 				case ':', '.', ',', '\'', '"':
 				default:
 					wo = append(wo, word[i])
+					letters[rune(word[i])] = true
 				}
 			}
 			words = append(words, wo)
 		}
 	}
 
-	return words, enciphered, clear, nil
+	var uniqueLetters []rune
+	for l, _ := range letters {
+		uniqueLetters = append(uniqueLetters, l)
+	}
+
+	sort.Sort(RuneSlice(uniqueLetters))
+
+	return words, uniqueLetters, enciphered, clear, nil
 }
