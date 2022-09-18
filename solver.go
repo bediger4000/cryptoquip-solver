@@ -48,13 +48,20 @@ func main() {
 	// find all the dictionary words "shapes", and match up the letters with
 	// those shapes.
 	// The word "goober" would have the shape "011234".
-	// "goober" would add
+	// "goober" would add 'g' to position 0 of words with shape "011234",
+	// add 'o' to position 1 of words with shape "011234",
+	// add 'o' to position 2 of words with shape "011234",
+	// add 'b' to position 3 of words with shape "011234",
+	// etc etc
 	allLetters := qp.NewRunesDict(shapeDict)
 
+	// cycle through the steps of finding clear text letters for
+	// cipher text letters
 	for cycle := 0; len(solved.CipherLetters) > len(solved.SolvedLetters) && cycle < *cycles; cycle++ {
 
 		fmt.Printf("---start cycle %d---\n\n", cycle)
 
+		// map of cipher letters to correpsonding set of clear text letters
 		possibleLetters := make(map[rune]map[rune]bool)
 
 		for _, str := range puzzlewords {
@@ -62,7 +69,7 @@ func main() {
 			fmt.Printf("%s\n%s\n", str, config)
 
 			configMatches := shapeDict[config]
-			fmt.Printf("%d matches\n", len(configMatches))
+			fmt.Printf("%d shape matches\n", len(configMatches))
 
 			if entry, ok := allLetters[config]; ok {
 				fmt.Printf("Found letters for %s, configuration %s\n", str, config)
