@@ -94,16 +94,10 @@ func main() {
 							printLetters(cipherLetter, "currently associated with", clearLetters)
 						}
 						hadN := len(clearLetters)
-						// find intersection of clearLetters and entry.Runes[i]
-						intersection := make(map[rune]bool)
-						for newLetter, _ := range entry.Runes[i] {
-							if clearLetters[newLetter] {
-								intersection[newLetter] = true
-							}
-						}
-						possibleLetters[cipherLetter] = intersection
+						// find common letters in clearLetters and entry.Runes[i]
+						possibleLetters[cipherLetter] = intersectSlices(entry.Runes[i], clearLetters)
 						if *verbose {
-							hasN := len(intersection)
+							hasN := len(possibleLetters[cipherLetter])
 							fmt.Printf("cipher letter %c had %d clear letters, has %d\n", cipherLetter, hadN, hasN)
 							printLetters(cipherLetter, "now associated with", possibleLetters[cipherLetter])
 						}
@@ -481,4 +475,16 @@ func markSingleSolvedLettes(solved *qp.Solved, possibleLetters map[rune]map[rune
 			}
 		}
 	}
+}
+
+func intersectSlices(sl1, sl2 map[rune]bool) map[rune]bool {
+	intersection := make(map[rune]bool)
+
+	for newLetter, _ := range sl1 {
+		if sl2[newLetter] {
+			intersection[newLetter] = true
+		}
+	}
+
+	return intersection
 }
