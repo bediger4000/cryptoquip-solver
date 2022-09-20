@@ -129,7 +129,7 @@ func main() {
 		}
 
 		printSortedPossible(possibleLetters)
-		markSingleSolvedLettes(solved, possibleLetters, *verbose)
+		markSingleSolvedLettes(solved, possibleLetters)
 
 		shapeMatches := cwMustMatch(solved, puzzlewords, possibleLetters, *verbose)
 		shapeDict = weedShapeDict(solved, shapeDict, shapeMatches, *verbose)
@@ -473,7 +473,7 @@ func printSolvedLetters(cipherLetters []rune, mrr map[rune]rune) {
 // have a single possible letter left. Var possibleLetters contains the
 // clear text letters left after intersecting the possible letters from
 // the shape-keyed dictionary.
-func markSingleSolvedLettes(solved *qp.Solved, possibleLetters map[rune]map[rune]bool, verbose bool) {
+func markSingleSolvedLettes(solved *qp.Solved, possibleLetters map[rune]map[rune]bool) {
 	for cipherLetter, letters := range possibleLetters {
 		if len(letters) == 1 {
 			for singleLetter, _ := range letters {
