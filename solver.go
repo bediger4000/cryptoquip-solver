@@ -127,7 +127,7 @@ func main() {
 		markSingleSolvedLettes(solved, possibleLetters)
 
 		shapeMatches := cwMustMatch(solved, puzzlewords, possibleLetters, *verbose)
-		shapeDict = weedShapeDict(solved, shapeDict, shapeMatches, *verbose)
+		shapeDict = shapeDictFromRegexp(solved, shapeDict, shapeMatches, *verbose)
 		shapeDictCharacterization(shapeDict, "new")
 		allLetters = qp.NewRunesDict(shapeDict)
 
@@ -334,7 +334,7 @@ func cwMustMatch(solved *qp.Solved, puzzlewords [][]byte, possibleLetters map[ru
 	return smatches
 }
 
-func weedShapeDict(solved *qp.Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
+func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
 
 	newShapeDict := make(map[string][]string)
 
@@ -342,16 +342,33 @@ func weedShapeDict(solved *qp.Solved, shapeDict map[string][]string, shapeMatche
 	// that match that cipher letter
 	lettersFromRgxp := make(map[rune]map[rune]bool)
 
+	if verbose {
+		fmt.Printf("creating new shape dictionary with %d shape matchers\n", len(shapeMatches))
+	}
+
 	for _, sm := range shapeMatches {
+		if verbose {
+			fmt.Printf("\trecreating shape dictionary for %s:%s - %s\n",
+				sm.cipherWord, sm.configuration, sm.pattern,
+			)
+		}
 		rgxp, err := regexp.Compile(sm.pattern)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "pattern %s: %v", sm.pattern, err)
 			continue
 		}
+		if verbose {
+			fmt.Printf("\t%d shape matches for %s in current shape dictionary",
+				len(shapeDict[sm.configuration]),
+				sm.configuration,
+			)
+		}
 
+		rgxpMatchedShapeMatches := 0
 		shapeMatches := make(map[string]bool)
 		for _, shapeWord := range shapeDict[sm.configuration] {
 			if rgxp.MatchString(shapeWord) {
+				rgxpMatchedShapeMatches++
 				newShapeDict[sm.configuration] = append(
 					newShapeDict[sm.configuration],
 					shapeWord,
@@ -373,10 +390,11 @@ func weedShapeDict(solved *qp.Solved, shapeDict map[string][]string, shapeMatche
 			}
 		}
 		if verbose {
-			fmt.Printf("cipherword %q could be %d dictionary words\n", sm.cipherWord, len(shapeMatches))
+			fmt.Printf("\tpattern %s matched %d dictionary words\n", sm.pattern, rgxpMatchedShapeMatches)
+			fmt.Printf("\tcipherword %q could be %d dictionary words\n", sm.cipherWord, len(shapeMatches))
 			if len(shapeMatches) < 11 {
 				for word, _ := range shapeMatches {
-					fmt.Printf("\t%s\n", word)
+					fmt.Printf("\t\t%s\n", word)
 				}
 			}
 
