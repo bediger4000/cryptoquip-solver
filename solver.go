@@ -61,18 +61,19 @@ func main() {
 
 		fmt.Printf("---start cycle %d---\n\n", cycle)
 
+		shapeDictCharacterization(shapeDict, "current")
+
 		// map of cipher letters to correpsonding set of clear text letters
 		possibleLetters := make(map[rune]map[rune]bool)
 
 		for _, str := range puzzlewords {
 			config := qp.StringConfiguration(string(str))
-			fmt.Printf("%s\n%s\n", str, config)
+			fmt.Printf("\ncipher word under consideration: %s\ncipher word shape %s\n", str, config)
 
 			configMatches := shapeDict[config]
-			fmt.Printf("%d shape matches\n", len(configMatches))
+			fmt.Printf("\t%d shape matches\n", len(configMatches))
 
 			if entry, ok := allLetters[config]; ok {
-				fmt.Printf("Found letters for %s, configuration %s\n", str, config)
 				for i := 0; i < entry.Length; i++ {
 					// all the letters found at index i in all words with this configuration
 					cipherLetter := rune(str[i])
@@ -127,6 +128,7 @@ func main() {
 
 		shapeMatches := cwMustMatch(solved, puzzlewords, possibleLetters, *verbose)
 		shapeDict = weedShapeDict(solved, shapeDict, shapeMatches, *verbose)
+		shapeDictCharacterization(shapeDict, "new")
 		allLetters = qp.NewRunesDict(shapeDict)
 
 		printSolvedLetters(solved.CipherLetters, solved.SolvedLetters)
@@ -135,6 +137,22 @@ func main() {
 		printSolvedWords(puzzlewords, solved)
 
 		fmt.Printf("---end cycle %d---\n\n", cycle)
+	}
+}
+
+// shapeDictCharacterization prints out "size" of a shape dictionary,
+// a map[string][]string, where the map key is a word "shape" or "configuration",
+// and the key's associated value is a slice of string words that have that shape.
+func shapeDictCharacterization(shapeDict map[string][]string, phrase string) {
+	wordCount := 0
+	for _, words := range shapeDict {
+		wordCount += len(words)
+	}
+	fmt.Printf("%s shape dictionary has %d shapes, %d words\n", phrase, len(shapeDict), wordCount)
+	if len(shapeDict) < 11 {
+		for shape, matches := range shapeDict {
+			fmt.Printf("shape %s has %d matches\n", shape, len(matches))
+		}
 	}
 }
 
@@ -424,16 +442,6 @@ func weedShapeDict(solved *qp.Solved, shapeDict map[string][]string, shapeMatche
 			fmt.Printf("cipher letter %c clear letters from regexps: ", r)
 			sortThenPrint(ltrs)
 		}
-		wordCount := 0
-		for _, words := range shapeDict {
-			wordCount += len(words)
-		}
-		fmt.Printf("old shape dictionary has %d shapes, %d words\n", len(shapeDict), wordCount)
-		wordCount = 0
-		for _, words := range newShapeDict {
-			wordCount += len(words)
-		}
-		fmt.Printf("new shape dictionary has %d shapes, %d words\n", len(newShapeDict), wordCount)
 	}
 
 	for cipherLetter, clearLetters := range lettersFromRgxp {
