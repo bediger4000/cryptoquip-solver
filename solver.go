@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	shapeDictCharacterization(shapeDict, "clear text dictionary")
+	shapeDictCharacterization(shapeDict, "unfiltered clear text")
 
 	puzzlewords, cipherLetters, cipherHint, clearHint, err := qp.ReadPuzzle(*puzzleName, *verbose)
 	if err != nil {
@@ -44,6 +44,7 @@ func main() {
 		fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
 		solved.SetSolved(cipherHint, clearHint)
 	}
+	fmt.Printf("%d total cipher words\n", len(puzzlewords))
 	fmt.Printf("%d total cipher letters\n", len(solved.CipherLetters))
 
 	// find all the dictionary words "shapes", and match up the letters with
@@ -74,6 +75,11 @@ func main() {
 
 			configMatches := shapeDict[config]
 			fmt.Printf("\t%d shape matches on %q\n", len(configMatches), config)
+			if len(configMatches) < 6 {
+				for i := range configMatches {
+					fmt.Printf("\t%s\n", configMatches[i])
+				}
+			}
 
 			if entry, ok := allLetters[config]; ok {
 				for i := 0; i < entry.Length; i++ {
@@ -350,6 +356,8 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 		fmt.Printf("creating new shape dictionary with %d shape matchers\n", len(shapeMatches))
 	}
 
+	overallWordMatches := make(map[string]bool)
+
 	for _, sm := range shapeMatches {
 		if verbose {
 			fmt.Printf("\trecreating shape dictionary for %s:%s - %s\n",
@@ -370,8 +378,9 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 
 		wordMatched := make(map[string]bool)
 		rgxpMatchedShapeMatches := 0
+
 		for _, shapeWord := range shapeDict[sm.configuration] {
-			if wordMatched[shapeWord] {
+			if wordMatched[shapeWord] || overallWordMatches[shapeWord] {
 				// seen clear text word shapeWord already
 				continue
 			}
@@ -382,6 +391,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 					shapeWord,
 				)
 				wordMatched[shapeWord] = true
+				overallWordMatches[shapeWord] = true
 
 				for idx, sl := range shapeWord {
 					// sl cleartext letter could solve sm.cipherWord[idx]
