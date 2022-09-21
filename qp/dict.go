@@ -43,6 +43,9 @@ func NewShapeDict(fileName string) (map[string][]string, error) {
 		line = norm.NFC.String(line)
 
 		config := StringConfiguration(line)
+		if len(config) != len(line) {
+			continue
+		}
 		d[config] = append(d[config], line)
 	}
 
