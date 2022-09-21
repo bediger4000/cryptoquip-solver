@@ -19,14 +19,15 @@ func main() {
 	cycles := flag.Int("c", 4, "number of cycles to attempt")
 	flag.Parse()
 
+	if *puzzleName == "" {
+		log.Fatal("need a puzzle file name")
+	}
+
 	shapeDict, err := qp.NewShapeDict(*dictName)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if *puzzleName == "" {
-		log.Fatal("need a puzzle file name")
-	}
+	shapeDictCharacterization(shapeDict, "clear text dictionary")
 
 	puzzlewords, cipherLetters, cipherHint, clearHint, err := qp.ReadPuzzle(*puzzleName, *verbose)
 	if err != nil {
@@ -61,9 +62,10 @@ func main() {
 
 		fmt.Printf("---start cycle %d---\n\n", cycle)
 
-		shapeDictCharacterization(shapeDict, "current")
+		shapeDictCharacterization(shapeDict, fmt.Sprintf("cycle %d", cycle))
 
 		// map of cipher letters to correpsonding set of clear text letters
+		// that get found during this cycle.
 		possibleLetters := make(map[rune]map[rune]bool)
 
 		for _, str := range puzzlewords {
@@ -71,7 +73,7 @@ func main() {
 			fmt.Printf("\ncipher word under consideration: %s\ncipher word shape %s\n", str, config)
 
 			configMatches := shapeDict[config]
-			fmt.Printf("\t%d shape matches\n", len(configMatches))
+			fmt.Printf("\t%d shape matches on %q\n", len(configMatches), config)
 
 			if entry, ok := allLetters[config]; ok {
 				for i := 0; i < entry.Length; i++ {
@@ -123,10 +125,10 @@ func main() {
 			}
 		}
 
-		printSortedPossible(possibleLetters)
+		printSortedPossible(cycle, possibleLetters)
 		markSingleSolvedLettes(solved, possibleLetters)
 
-		shapeMatches := cwMustMatch(solved, puzzlewords, possibleLetters, *verbose)
+		shapeMatches := cwMustMatch(solved, puzzlewords, possibleLetters)
 		shapeDict = shapeDictFromRegexp(solved, shapeDict, shapeMatches, *verbose)
 		shapeDictCharacterization(shapeDict, "new")
 		allLetters = qp.NewRunesDict(shapeDict)
@@ -151,7 +153,7 @@ func shapeDictCharacterization(shapeDict map[string][]string, phrase string) {
 	fmt.Printf("%s shape dictionary has %d shapes, %d words\n", phrase, len(shapeDict), wordCount)
 	if len(shapeDict) < 11 {
 		for shape, matches := range shapeDict {
-			fmt.Printf("shape %s has %d matches\n", shape, len(matches))
+			fmt.Printf("\tshape %s has %d matches\n", shape, len(matches))
 		}
 	}
 }
@@ -193,12 +195,14 @@ func printSolvedWords(puzzlewords [][]byte, solved *qp.Solved) {
 	}
 }
 
-func printSortedPossible(possibleLetters map[rune]map[rune]bool) {
+func printSortedPossible(cycle int, possibleLetters map[rune]map[rune]bool) {
 	var keys []rune
 	for cipherLetter, _ := range possibleLetters {
 		keys = append(keys, cipherLetter)
 	}
 	sort.Sort(qp.RuneSlice(keys))
+
+	fmt.Printf("After cycle %d shape comparisons:\n", cycle)
 
 	for i := range keys {
 		printLetters(keys[i], "", possibleLetters[keys[i]])
@@ -300,7 +304,7 @@ type shapeMatch struct {
 }
 
 // compose regular expressions that cipherwords must match
-func cwMustMatch(solved *qp.Solved, puzzlewords [][]byte, possibleLetters map[rune]map[rune]bool, verbose bool) []*shapeMatch {
+func cwMustMatch(solved *qp.Solved, puzzlewords [][]byte, possibleLetters map[rune]map[rune]bool) []*shapeMatch {
 
 	var smatches []*shapeMatch
 
@@ -319,7 +323,7 @@ func cwMustMatch(solved *qp.Solved, puzzlewords [][]byte, possibleLetters map[ru
 			cwregexp += clregexp
 		}
 		cwregexp += "$"
-		if verbose {
+		if solved.Verbose {
 			fmt.Printf("cipher word %q must match regexp '%s'\n", cipherword, cwregexp)
 		}
 		str := string(cipherword)
@@ -358,26 +362,29 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 			continue
 		}
 		if verbose {
-			fmt.Printf("\t%d shape matches for %s in current shape dictionary",
+			fmt.Printf("\t%d shape matches for %s in current shape dictionary\n",
 				len(shapeDict[sm.configuration]),
 				sm.configuration,
 			)
 		}
 
+		wordMatched := make(map[string]bool)
 		rgxpMatchedShapeMatches := 0
-		shapeMatches := make(map[string]bool)
 		for _, shapeWord := range shapeDict[sm.configuration] {
+			if wordMatched[shapeWord] {
+				// seen clear text word shapeWord already
+				continue
+			}
 			if rgxp.MatchString(shapeWord) {
 				rgxpMatchedShapeMatches++
 				newShapeDict[sm.configuration] = append(
 					newShapeDict[sm.configuration],
 					shapeWord,
 				)
-				shapeMatches[shapeWord] = true
+				wordMatched[shapeWord] = true
 
 				for idx, sl := range shapeWord {
 					// sl cleartext letter could solve sm.cipherWord[idx]
-					// make(map[rune]map[rune]bool)
 					if ltrs, ok := lettersFromRgxp[rune(sm.cipherWord[idx])]; ok {
 						// seen this cipher letter before
 						ltrs[sl] = true
@@ -391,22 +398,22 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 		}
 		if verbose {
 			fmt.Printf("\tpattern %s matched %d dictionary words\n", sm.pattern, rgxpMatchedShapeMatches)
-			fmt.Printf("\tcipherword %q could be %d dictionary words\n", sm.cipherWord, len(shapeMatches))
-			if len(shapeMatches) < 11 {
-				for word, _ := range shapeMatches {
+			fmt.Printf("\tcipherword %q could be %d dictionary words\n", sm.cipherWord, len(wordMatched))
+			if len(wordMatched) < 11 {
+				for word, _ := range wordMatched {
 					fmt.Printf("\t\t%s\n", word)
 				}
 			}
 
 		}
-		if len(shapeMatches) == 1 {
+		if len(wordMatched) == 1 {
 			// we can match all the letters in sm.cipherWord
 			// to the clear text letters in newShapeDict[sm.configuration],
 			// setting a key/value in the map solvedLetters.
 			// Unless there's already a value in solvedLetters for the cipher letter,
 			// and it's not the letter in sm.cipherWord[i]
 			var soleMatch string
-			for soleMatch, _ = range shapeMatches {
+			for soleMatch, _ = range wordMatched {
 			}
 			if verbose {
 				fmt.Printf("single match of %q in word shapes dictionary %q\n",
@@ -430,10 +437,10 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 					solved.SetSolved(cl, sl2)
 				}
 			}
-		} else if len(shapeMatches) > 1 {
+		} else if len(wordMatched) > 1 {
 			// See if some letter(s) are the same in the same position of all words
 			letters := make([]map[rune]bool, 0)
-			for word, _ := range shapeMatches {
+			for word, _ := range wordMatched {
 				for idx, r := range word {
 					if idx >= len(letters) {
 						letters = append(letters, make(map[rune]bool))
