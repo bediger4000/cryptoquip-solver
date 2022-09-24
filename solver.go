@@ -239,10 +239,10 @@ type lrange struct {
 	end   rune
 }
 
-// composeRegexpForLetter makes a regular expression that matches a single
+// regexpForLetter makes a regular expression that matches a single
 // cleartext letter from map m, which contains all of the letters that
 // a cipher letter represents.
-func composeRegexpForLetter(solved *qp.Solved, cipherLetter rune, m map[rune]bool) string {
+func regexpForLetter(solved *qp.Solved, cipherLetter rune, m map[rune]bool) string {
 	if len(m) == 0 {
 		// should this be an error? should it get logged?
 		return ""
@@ -323,7 +323,7 @@ func cwMustMatch(solved *qp.Solved, puzzlewords [][]byte, possibleLetters map[ru
 			if sl, ok := solved.SolvedLetters[r]; ok {
 				cipherLetterRegexps[r] = fmt.Sprintf("%c", sl)
 			} else if _, ok := cipherLetterRegexps[r]; !ok {
-				cipherLetterRegexps[r] = composeRegexpForLetter(solved, r, possibleLetters[r])
+				cipherLetterRegexps[r] = regexpForLetter(solved, r, possibleLetters[r])
 			}
 			clregexp := cipherLetterRegexps[r]
 			cwregexp += clregexp
