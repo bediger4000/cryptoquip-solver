@@ -23,16 +23,17 @@ func main() {
 		log.Fatal("need a puzzle file name")
 	}
 
-	shapeDict, err := qp.NewShapeDict(*dictName)
+	puzzlewords, upw, cipherLetters, cipherHint, clearHint, err := qp.ReadPuzzle(*puzzleName, *verbose)
 	if err != nil {
 		log.Fatal(err)
 	}
-	shapeDictCharacterization(shapeDict, "unfiltered clear text")
 
-	puzzlewords, cipherLetters, cipherHint, clearHint, err := qp.ReadPuzzle(*puzzleName, *verbose)
+	totalShapeDict, err := qp.NewShapeDict(*dictName)
 	if err != nil {
 		log.Fatal(err)
 	}
+	shapeDict := limitShapeDict(totalShapeDict, puzzlewords)
+	shapeDictCharacterization(shapeDict, "unfiltered clear text")
 
 	solved := &qp.Solved{
 		SolvedLetters: make(map[rune]rune),
@@ -44,8 +45,9 @@ func main() {
 		fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
 		solved.SetSolved(cipherHint, clearHint)
 	}
-	fmt.Printf("%d total cipher words\n", len(puzzlewords))
-	fmt.Printf("%d total cipher letters\n", len(solved.CipherLetters))
+	fmt.Printf("%d  total cipher words\n", len(puzzlewords))
+	fmt.Printf("%d unique cipher words\n", upw)
+	fmt.Printf("%d  total cipher letters\n", len(solved.CipherLetters))
 
 	// find all the dictionary words "shapes", and match up the letters with
 	// those shapes.
@@ -69,7 +71,17 @@ func main() {
 		// that get found during this cycle.
 		possibleLetters := make(map[rune]map[rune]bool)
 
+		// look through all the puzzle words and find the intersection of
+		// all the sets-of-cleartext-letters for any given cipher letter
+		seenWordAlready := make(map[string]bool)
 		for _, str := range puzzlewords {
+
+			// Doesn't pay off to examine the same word several times
+			if seenWordAlready[string(str)] {
+				continue
+			}
+			seenWordAlready[string(str)] = true
+
 			config := qp.StringConfiguration(string(str))
 			fmt.Printf("\ncipher word under consideration: %s\ncipher word shape %s\n", str, config)
 
@@ -83,7 +95,7 @@ func main() {
 
 			if entry, ok := allLetters[config]; ok {
 				for i := 0; i < entry.Length; i++ {
-					// all the letters found at index i in all words with this configuration
+					// all the letters found at index i in all clear text words with this configuration
 					cipherLetter := rune(str[i])
 					if unicode.IsPunct(cipherLetter) {
 						continue
@@ -132,11 +144,23 @@ func main() {
 		}
 
 		printSortedPossible(cycle, possibleLetters)
+
+		// if any ciper letters have a set of cleartext letters of size 1,
+		// mark those cipher letters as solved.
 		markSingleSolvedLettes(solved, possibleLetters)
 
+		// Compose regular expressions for each puzzle (cipher) word based
+		// on the sets of cleartext letters.
 		shapeMatches := cwMustMatch(solved, puzzlewords, possibleLetters)
-		shapeDict = shapeDictFromRegexp(solved, shapeDict, shapeMatches, *verbose)
+
+		// recreate a "shape dictionary" based on words that match the regular
+		// expressions, and exist in the current shape dictionary.
+		shapeDict = shapeDictFromRegexp(solved, shapeDict, shapeMatches)
 		shapeDictCharacterization(shapeDict, "new")
+
+		// Figure out the sets of clear text letters associated with each
+		// cipher letter from the newly re-created shape dictionary.
+		// Solved cleartext letters don't get removed here.
 		allLetters = qp.NewRunesDict(shapeDict)
 
 		printSolvedLetters(solved.CipherLetters, solved.SolvedLetters)
@@ -344,7 +368,7 @@ func cwMustMatch(solved *qp.Solved, puzzlewords [][]byte, possibleLetters map[ru
 	return smatches
 }
 
-func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch, verbose bool) map[string][]string {
+func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch) map[string][]string {
 
 	newShapeDict := make(map[string][]string)
 
@@ -352,14 +376,14 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 	// that match that cipher letter
 	lettersFromRgxp := make(map[rune]map[rune]bool)
 
-	if verbose {
+	if solved.Verbose {
 		fmt.Printf("creating new shape dictionary with %d shape matchers\n", len(shapeMatches))
 	}
 
 	overallWordMatches := make(map[string]bool)
 
 	for _, sm := range shapeMatches {
-		if verbose {
+		if solved.Verbose {
 			fmt.Printf("\trecreating shape dictionary for %s:%s - %s\n",
 				sm.cipherWord, sm.configuration, sm.pattern,
 			)
@@ -369,7 +393,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 			fmt.Fprintf(os.Stderr, "pattern %s: %v", sm.pattern, err)
 			continue
 		}
-		if verbose {
+		if solved.Verbose {
 			fmt.Printf("\t%d shape matches for %s in current shape dictionary\n",
 				len(shapeDict[sm.configuration]),
 				sm.configuration,
@@ -406,7 +430,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 				}
 			}
 		}
-		if verbose {
+		if solved.Verbose {
 			fmt.Printf("\tpattern %s matched %d dictionary words\n", sm.pattern, rgxpMatchedShapeMatches)
 			fmt.Printf("\tcipherword %q could be %d dictionary words\n", sm.cipherWord, len(wordMatched))
 			if len(wordMatched) < 11 {
@@ -425,7 +449,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 			var soleMatch string
 			for soleMatch, _ = range wordMatched {
 			}
-			if verbose {
+			if solved.Verbose {
 				fmt.Printf("single match of %q in word shapes dictionary %q\n",
 					sm.cipherWord,
 					soleMatch,
@@ -472,7 +496,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 		}
 	}
 
-	if verbose {
+	if solved.Verbose {
 		for r, ltrs := range lettersFromRgxp {
 			fmt.Printf("cipher letter %c clear letters from regexps: ", r)
 			sortThenPrint(ltrs)
@@ -530,4 +554,21 @@ func intersectSlices(sl1, sl2 map[rune]bool) map[rune]bool {
 	}
 
 	return intersection
+}
+
+func limitShapeDict(totalShapeDict map[string][]string, puzzlewords [][]byte) map[string][]string {
+
+	shapeDict := make(map[string][]string)
+	seenWordAlready := make(map[string]bool)
+
+	for _, wordBytes := range puzzlewords {
+		word := string(wordBytes)
+		if seenWordAlready[word] {
+			continue
+		}
+		cfg := qp.StringConfiguration(word)
+		shapeDict[cfg] = totalShapeDict[cfg]
+	}
+
+	return shapeDict
 }
