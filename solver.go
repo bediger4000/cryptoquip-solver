@@ -124,7 +124,7 @@ func main() {
 						}
 					} else {
 						possibleLetters[cipherLetter] = make(map[rune]bool)
-						for newLetter, _ := range entry.Runes[i] {
+						for newLetter := range entry.Runes[i] {
 							possibleLetters[cipherLetter][newLetter] = true
 						}
 						// leave already solved cipher-letter-solutions out of possibleLetters
@@ -227,7 +227,7 @@ func printSolvedWords(puzzlewords [][]byte, solved *qp.Solved) {
 
 func printSortedPossible(cycle int, possibleLetters map[rune]map[rune]bool) {
 	var keys []rune
-	for cipherLetter, _ := range possibleLetters {
+	for cipherLetter := range possibleLetters {
 		keys = append(keys, cipherLetter)
 	}
 	sort.Sort(qp.RuneSlice(keys))
@@ -248,7 +248,7 @@ func printLetters(cipherLetter rune, format string, m map[rune]bool) {
 func sortThenPrint(m map[rune]bool) {
 
 	var letters []rune
-	for l, _ := range m {
+	for l := range m {
 		letters = append(letters, l)
 	}
 	sort.Sort(qp.RuneSlice(letters))
@@ -272,7 +272,7 @@ func regexpForLetter(solved *qp.Solved, cipherLetter rune, m map[rune]bool) stri
 		return ""
 	}
 	if len(m) == 1 {
-		for l, _ := range m {
+		for l := range m {
 			return fmt.Sprintf("%c", l)
 		}
 	}
@@ -284,7 +284,7 @@ func regexpForLetter(solved *qp.Solved, cipherLetter rune, m map[rune]bool) stri
 	}
 
 	var letters []rune
-	for l, _ := range m {
+	for l := range m {
 		// l is potentially the solution for cipherLetter
 		if _, ok := solved.ClearLetters[l]; ok {
 			// clear letter l is already known a match for some other cipher letter
@@ -432,7 +432,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 			fmt.Printf("\tpattern %s matched %d dictionary words\n", sm.pattern, rgxpMatchedShapeMatches)
 			fmt.Printf("\tcipherword %q could be %d dictionary words\n", sm.cipherWord, len(wordMatched))
 			if len(wordMatched) < 11 {
-				for word, _ := range wordMatched {
+				for word := range wordMatched {
 					fmt.Printf("\t\t%s\n", word)
 				}
 			}
@@ -445,7 +445,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 			// Unless there's already a value in solvedLetters for the cipher letter,
 			// and it's not the letter in sm.cipherWord[i]
 			var soleMatch string
-			for soleMatch, _ = range wordMatched {
+			for soleMatch = range wordMatched {
 			}
 			if solved.Verbose {
 				fmt.Printf("single match of %q in word shapes dictionary %q\n",
@@ -472,7 +472,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 		} else if len(wordMatched) > 1 {
 			// See if some letter(s) are the same in the same position of all words
 			letters := make([]map[rune]bool, 0)
-			for word, _ := range wordMatched {
+			for word := range wordMatched {
 				for idx, r := range word {
 					if idx >= len(letters) {
 						letters = append(letters, make(map[rune]bool))
@@ -485,7 +485,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 					// There is only one cleartext letter at position idx
 					// in all of the matching-shape-words.
 					var c rune
-					for c, _ = range m {
+					for c = range m {
 					}
 					fmt.Printf("At position %d in shape matches, cipher letter %c, only 1 clear letter: %c\n", idx, sm.cipherWord[idx], c)
 					solved.SetSolved(rune(sm.cipherWord[idx]), c)
@@ -503,7 +503,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 
 	for cipherLetter, clearLetters := range lettersFromRgxp {
 		if len(clearLetters) == 1 {
-			for clearLetter, _ := range clearLetters {
+			for clearLetter := range clearLetters {
 				solved.SetSolved(cipherLetter, clearLetter)
 			}
 		}
@@ -537,7 +537,7 @@ func printSolvedLetters(solved *qp.Solved) {
 func markSingleSolvedLettes(solved *qp.Solved, possibleLetters map[rune]map[rune]bool) {
 	for cipherLetter, letters := range possibleLetters {
 		if len(letters) == 1 {
-			for singleLetter, _ := range letters {
+			for singleLetter := range letters {
 				solved.SetSolved(cipherLetter, singleLetter)
 			}
 		}
@@ -549,7 +549,7 @@ func markSingleSolvedLettes(solved *qp.Solved, possibleLetters map[rune]map[rune
 func intersectSlices(sl1, sl2 map[rune]bool) map[rune]bool {
 	intersection := make(map[rune]bool)
 
-	for newLetter, _ := range sl1 {
+	for newLetter := range sl1 {
 		if sl2[newLetter] {
 			intersection[newLetter] = true
 		}
