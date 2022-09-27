@@ -380,8 +380,6 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 		fmt.Printf("creating new shape dictionary with %d shape matchers\n", len(shapeMatches))
 	}
 
-	overallWordMatches := make(map[string]bool)
-
 	for _, sm := range shapeMatches {
 		if solved.Verbose {
 			fmt.Printf("\trecreating shape dictionary for %s:%s - %s\n",
@@ -400,22 +398,15 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 			)
 		}
 
-		wordMatched := make(map[string]bool)
 		rgxpMatchedShapeMatches := 0
 
 		for _, shapeWord := range shapeDict[sm.configuration] {
-			if wordMatched[shapeWord] || overallWordMatches[shapeWord] {
-				// seen clear text word shapeWord already
-				continue
-			}
 			if rgxp.MatchString(shapeWord) {
 				rgxpMatchedShapeMatches++
 				newShapeDict[sm.configuration] = append(
 					newShapeDict[sm.configuration],
 					shapeWord,
 				)
-				wordMatched[shapeWord] = true
-				overallWordMatches[shapeWord] = true
 
 				for idx, sl := range shapeWord {
 					// sl cleartext letter could solve sm.cipherWord[idx]
