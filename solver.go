@@ -163,7 +163,7 @@ func main() {
 		// Solved cleartext letters don't get removed here.
 		allLetters = qp.NewRunesDict(shapeDict)
 
-		printSolvedLetters(solved.CipherLetters, solved.SolvedLetters)
+		printSolvedLetters(solved)
 
 		fmt.Println("\nSolved Puzzle:")
 		printSolvedWords(puzzlewords, solved)
@@ -333,7 +333,7 @@ type shapeMatch struct {
 	pattern       string
 }
 
-// compose regular expressions that cipherwords must match
+// cwMustMatch composes regular expressions that cipherwords must match
 func cwMustMatch(solved *qp.Solved, puzzlewords [][]byte, possibleLetters map[rune]map[rune]bool) []*shapeMatch {
 
 	var smatches []*shapeMatch
@@ -368,6 +368,10 @@ func cwMustMatch(solved *qp.Solved, puzzlewords [][]byte, possibleLetters map[ru
 	return smatches
 }
 
+// shapeDictFromRegexp makes a new "shape dictionary" from the previous
+// cycle's shape dictionary and the regular expressions composed from
+// the clear text letters from intersecting the previous cycle's
+// shape dictionary entries.
 func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shapeMatches []*shapeMatch) map[string][]string {
 
 	newShapeDict := make(map[string][]string)
@@ -386,6 +390,7 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 				sm.cipherWord, sm.configuration, sm.pattern,
 			)
 		}
+		wordMatched := make(map[string]bool)
 		rgxp, err := regexp.Compile(sm.pattern)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "pattern %s: %v", sm.pattern, err)
@@ -401,23 +406,25 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 		rgxpMatchedShapeMatches := 0
 
 		for _, shapeWord := range shapeDict[sm.configuration] {
-			if rgxp.MatchString(shapeWord) {
-				rgxpMatchedShapeMatches++
-				newShapeDict[sm.configuration] = append(
-					newShapeDict[sm.configuration],
-					shapeWord,
-				)
+			if !rgxp.MatchString(shapeWord) {
+				continue
+			}
+			rgxpMatchedShapeMatches++
+			newShapeDict[sm.configuration] = append(
+				newShapeDict[sm.configuration],
+				shapeWord,
+			)
+			wordMatched[shapeWord] = true
 
-				for idx, sl := range shapeWord {
-					// sl cleartext letter could solve sm.cipherWord[idx]
-					if ltrs, ok := lettersFromRgxp[rune(sm.cipherWord[idx])]; ok {
-						// seen this cipher letter before
-						ltrs[sl] = true
-					} else {
-						ltrs = make(map[rune]bool)
-						ltrs[sl] = true
-						lettersFromRgxp[rune(sm.cipherWord[idx])] = ltrs
-					}
+			for idx, sl := range shapeWord {
+				// sl cleartext letter could solve sm.cipherWord[idx]
+				if ltrs, ok := lettersFromRgxp[rune(sm.cipherWord[idx])]; ok {
+					// seen this cipher letter before
+					ltrs[sl] = true
+				} else {
+					ltrs = make(map[rune]bool)
+					ltrs[sl] = true
+					lettersFromRgxp[rune(sm.cipherWord[idx])] = ltrs
 				}
 			}
 		}
@@ -505,14 +512,16 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 	return newShapeDict
 }
 
-func printSolvedLetters(cipherLetters []rune, mrr map[rune]rune) {
+// printSolvedLetters prints a human-comprehensible correspondence
+// of cipher- to solved-letters.
+func printSolvedLetters(solved *qp.Solved) {
 	fmt.Printf("\nSolved letters:\n")
-	for i := range cipherLetters {
-		fmt.Printf("%c ", cipherLetters[i])
+	for i := range solved.CipherLetters {
+		fmt.Printf("%c ", solved.CipherLetters[i])
 	}
 	fmt.Println()
-	for i := range cipherLetters {
-		if clear, ok := mrr[cipherLetters[i]]; ok {
+	for i := range solved.CipherLetters {
+		if clear, ok := solved.SolvedLetters[solved.CipherLetters[i]]; ok {
 			fmt.Printf("%c ", clear)
 		} else {
 			fmt.Printf("? ")
@@ -535,6 +544,8 @@ func markSingleSolvedLettes(solved *qp.Solved, possibleLetters map[rune]map[rune
 	}
 }
 
+// intersectSlices returns a set that's the intersection of
+// two sets of runes.
 func intersectSlices(sl1, sl2 map[rune]bool) map[rune]bool {
 	intersection := make(map[rune]bool)
 
@@ -547,6 +558,10 @@ func intersectSlices(sl1, sl2 map[rune]bool) map[rune]bool {
 	return intersection
 }
 
+// limitShapeDict called on the shape dictionary derived from the whole clear
+// text dictionary, and the list of puzzle words. Called before the first
+// cycle, so it doesn't have to deal with a shape dictionary that has shapes
+// not found in the cipher letters
 func limitShapeDict(totalShapeDict map[string][]string, puzzlewords [][]byte) map[string][]string {
 
 	shapeDict := make(map[string][]string)
