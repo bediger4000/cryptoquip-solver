@@ -16,24 +16,17 @@ func main() {
 	dictName := flag.String("d", "/usr/share/dict/words", "cleartext dictionary")
 	puzzleName := flag.String("p", "", "puzzle file name")
 	verbose := flag.Bool("v", false, "verbose output")
-	cycles := flag.Int("c", 4, "number of cycles to attempt")
+	cycles := flag.Int("c", 8, "number of cycles to attempt")
 	flag.Parse()
 
 	if *puzzleName == "" {
 		log.Fatal("need a puzzle file name")
 	}
 
-	puzzlewords, upw, cipherLetters, cipherHint, clearHint, err := qp.ReadPuzzle(*puzzleName, *verbose)
+	puzzlewords, uniquePuzzlewords, cipherLetters, cipherHint, clearHint, err := qp.ReadPuzzle(*puzzleName, *verbose)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	totalShapeDict, err := qp.NewShapeDict(*dictName)
-	if err != nil {
-		log.Fatal(err)
-	}
-	shapeDict := limitShapeDict(totalShapeDict, puzzlewords)
-	shapeDictCharacterization(shapeDict, "unfiltered clear text")
 
 	solved := &qp.Solved{
 		SolvedLetters: make(map[rune]rune),
@@ -46,8 +39,16 @@ func main() {
 		solved.SetSolved(cipherHint, clearHint)
 	}
 	fmt.Printf("%d  total cipher words\n", len(puzzlewords))
-	fmt.Printf("%d unique cipher words\n", upw)
+	fmt.Printf("%d unique cipher words\n", len(uniquePuzzlewords))
 	fmt.Printf("%d  total cipher letters\n", len(solved.CipherLetters))
+
+	totalShapeDict, err := qp.NewShapeDict(*dictName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	shapeDictCharacterization(totalShapeDict, "unfiltered clear text")
+
+	shapeDict := limitShapeDict(totalShapeDict, uniquePuzzlewords)
 
 	// find all the dictionary words "shapes", and match up the letters with
 	// those shapes.
@@ -74,7 +75,7 @@ func main() {
 		// look through all the puzzle words and find the intersection of
 		// all the sets-of-cleartext-letters for any given cipher letter
 		seenWordAlready := make(map[string]bool)
-		for _, str := range puzzlewords {
+		for _, str := range uniquePuzzlewords {
 
 			// Doesn't pay off to examine the same word several times
 			if seenWordAlready[string(str)] {
@@ -151,7 +152,7 @@ func main() {
 
 		// Compose regular expressions for each puzzle (cipher) word based
 		// on the sets of cleartext letters.
-		shapeMatches := cwMustMatch(solved, puzzlewords, possibleLetters)
+		shapeMatches := cwMustMatch(solved, uniquePuzzlewords, possibleLetters)
 
 		// recreate a "shape dictionary" based on words that match the regular
 		// expressions, and exist in the current shape dictionary.
@@ -407,6 +408,9 @@ func shapeDictFromRegexp(solved *qp.Solved, shapeDict map[string][]string, shape
 
 		for _, shapeWord := range shapeDict[sm.configuration] {
 			if !rgxp.MatchString(shapeWord) {
+				continue
+			}
+			if wordMatched[shapeWord] {
 				continue
 			}
 			rgxpMatchedShapeMatches++
