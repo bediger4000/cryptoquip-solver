@@ -7,13 +7,13 @@ import (
 	"sort"
 )
 
-func ReadPuzzle(fileName string, verbose bool) ([][]byte, int, []rune, rune, rune, error) {
+func ReadPuzzle(fileName string, verbose bool) ([][]byte, [][]byte, []rune, rune, rune, error) {
 	buf, err := os.ReadFile(fileName)
 	if err != nil {
 		if verbose {
 			fmt.Fprintf(os.Stderr, "reading file %s: %v\n", fileName, err)
 		}
-		return nil, 0, nil, ' ', ' ', err
+		return nil, nil, nil, ' ', ' ', err
 	}
 
 	uniquePuzzleWords := make(map[string]bool)
@@ -58,5 +58,10 @@ func ReadPuzzle(fileName string, verbose bool) ([][]byte, int, []rune, rune, run
 
 	sort.Sort(RuneSlice(uniqueLetters))
 
-	return words, len(uniquePuzzleWords), uniqueLetters, enciphered, clear, nil
+	upw := make([][]byte, 0, len(uniquePuzzleWords))
+	for pw := range uniquePuzzleWords {
+		upw = append(upw, []byte(pw))
+	}
+
+	return words, upw, uniqueLetters, enciphered, clear, nil
 }
