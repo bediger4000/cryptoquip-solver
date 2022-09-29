@@ -12,11 +12,9 @@ of Cryptoquips exist.
 The Cecil (Maryland) Daily Whig newspaper seems to have a good [online archive of recent cryptoquips](https://www.cecildaily.com/diversions/cryptoquip/).
 I find this strange.
 
-There are several other solvers available that may suit your needs better.
+There are other solvers available that may suit your needs better.
 
-https://www.quipqiup.com
-
-https://rumkin.com/tools/cipher/cryptogram-solver/
+This looks interesting, but doesn't explain its algorithm: https://www.quipqiup.com
 
 ## Building and Running
 
@@ -214,11 +212,31 @@ the clear text dictionary.
 
 It does cycle through the process more than once. _Go to Begin Cycle_
 
-My program only finds a partial solution to the puzzle above:
+My program finds a solution to the puzzle above in 2 cycles:
 
 ```
 tqlp ypdily qdfl xql glyuhl xr yqrt xqluh ohdxlzsvplyy gr crs xqupi xqlc tuvv oufl zdpoy
-?hen snakes ha?e the desire t? sh?? their gratefulness d? ??u think the? ?ill gi?e fangs
+when snakes have the desire to show their gratefulness do you think they will give fangs
+
 ```
 
-It will find complete solutions to many Cryptoquips, however.
+## Algorithm Failure Mode
+
+This puzzle is an adversarial example for my algorithm:
+
+```
+peen loop over cool boot green bean steep peat
+haaf lbbh bmat vbbl ibbs ntaaf iapf osaah haps
+# clear   a b c e g l n o p r s t v
+# cipher  p i v a n l f b h t o s m
+```
+
+The puzzle has only 3 word shapes: "0112, "0123", "01223".
+By shape alone, my clear text dictionary has matches:
+
+|0112|162|
+|0123|2721|
+|01223|433|
+
+3316 shape-matches.
+
