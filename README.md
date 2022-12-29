@@ -244,3 +244,24 @@ By shape alone, my clear text dictionary has matches:
 
 3316 shape-matches.
 
+I looked up those sentences that have all 26 letters in the english
+alphabet once, thinking that they would contain so few duplicate
+letters that my solver would fail.
+
+```
+the quick brown fox jumps over the lazy red dog
+sphinx of black quartz judge my vow
+pack my box with five dozen liquor jugs
+jackdaws love my big sphinx of quartz
+the quick onyx goblin jumps over the lazy dwarf
+#amazingly few discotheques provide jukeboxes
+```
+
+The first 5 lines amount to 210 bytes,
+which is about the same size as many of the cryptoquips
+my solver gets in just a few cycles.
+My solver does not appear to ever solve the first 5 lines.
+Adding the 6th, commented-out line, allows my solver to work.
+In fact, any 4 of the first 5 lines plus the 6th line ("amazingly few ...")
+are easily solvable.
+I suspect this happens because the 6th line has duplicate 'o' and 'e' characters.
