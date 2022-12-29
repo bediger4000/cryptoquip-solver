@@ -7,6 +7,9 @@ that might run in your newspaper.
 There's also [Celebrity Cipher](http://syndication.andrewsmcmeel.com/puzzles/celebritycipher)
 from Andrews McMeel Syndication.
 I think it's identical in all but name.
+There's a weird [Celebrity Cipher answers site](https://celebritycipheranswers.com/).
+It doesn't have any puzzles, just the answers, and it doesn't give a method of solution.
+I suspect it only exists to collect email addresses.
 
 ![Example Cryptoquip](cq.png)
 
