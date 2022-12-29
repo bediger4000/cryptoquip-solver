@@ -4,6 +4,10 @@ King Features has a daily cipher puzzle
 called [Cryptoquip](https://weekly.kingfeatures.com/?team=games-and-puzzles)
 that might run in your newspaper.
 
+There's also [Celebrity Cipher](http://syndication.andrewsmcmeel.com/puzzles/celebritycipher)
+from Andrews McMeel Syndication.
+I think it's identical in all but name.
+
 ![Example Cryptoquip](cq.png)
 
 People like this sort of thing enough that [books full](https://www.amazon.com/cryptoquip/s?k=cryptoquip)
