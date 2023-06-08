@@ -23,7 +23,7 @@ func main() {
 		log.Fatal("need a puzzle file name")
 	}
 
-	puzzlewords, uniquePuzzlewords, cipherLetters, cipherHint, clearHint, err := qp.ReadPuzzle(*puzzleName, *verbose)
+	puzzlewords, uniquePuzzlewords, cipherLetters, hints, err := qp.ReadPuzzle(*puzzleName, *verbose)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -34,9 +34,11 @@ func main() {
 		CipherLetters: cipherLetters,
 		Verbose:       *verbose,
 	}
-	if cipherHint != 0 && clearHint != 0 {
-		fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
-		solved.SetSolved(cipherHint, clearHint)
+	if len(hints) > 0 {
+		for cipherHint, clearHint := range hints {
+			fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
+			solved.SetSolved(cipherHint, clearHint)
+		}
 	}
 	fmt.Printf("%d  total cipher words\n", len(puzzlewords))
 	fmt.Printf("%d unique cipher words\n", len(uniquePuzzlewords))
