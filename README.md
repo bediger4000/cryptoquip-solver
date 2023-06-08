@@ -41,7 +41,10 @@ x=g
 tkdcfq pcdygjkv bec ucwyq zoyzkojvx dyks bjse k wyor qujxesur qzcjuyg tukwco
 ```
 
-The "x=g" line is the hint the daily cryptoquip gives.
+The "x=g" line is the hint the daily cryptoquip gives,
+cipher letter = clear text letter
+Even though the newspaper puzzles only give you one hint,
+the program can read and use more than one hint.
 
 After that, you can run the program:
 
