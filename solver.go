@@ -295,6 +295,19 @@ func regexpForLetter(solved *qp.Solved, cipherLetter rune, m map[rune]bool) stri
 		}
 		letters = append(letters, l)
 	}
+
+	// This is an odd thing to have to check.
+	if len(letters) == 0 {
+		// loop above threw out all the entries of m because each of them
+		// is a known solution for some other cipher letter
+		fmt.Fprintf(os.Stderr, "cipher letter %c has no possible matches\n", cipherLetter)
+		fmt.Fprintf(os.Stderr, "candidate matches for %c: ", cipherLetter)
+		for l := range m {
+			fmt.Fprintf(os.Stderr, " %c", l)
+		}
+		fmt.Fprintf(os.Stderr, "\n  They're all solved\n")
+		os.Exit(1)
+	}
 	sort.Sort(qp.RuneSlice(letters))
 
 	var ranges []*lrange
