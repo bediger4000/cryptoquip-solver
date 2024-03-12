@@ -42,7 +42,7 @@ func ReadPuzzle(fileName string, verbose bool) ([][]byte, [][]byte, []rune, map[
 			// Weed out some punctuation: .:,
 			for i := range word {
 				switch word[i] {
-				case ':', '.', ',', '\'', '"':
+				case ':', '.', ',', '"':
 				default:
 					wo = append(wo, word[i])
 					letters[rune(word[i])] = true
