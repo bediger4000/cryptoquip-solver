@@ -141,6 +141,17 @@ and end with a pair of the identical characters.
 I represented the "shape" and arrangement of letters with strings of digits.
 Enciphered word OHDXLZSVPLYY has the "shape" "012345678499"
 
+Single-quote (') characters are treated specially.
+Since single-quotes (or maybe apostrophes) appear in the clear
+mixed in with cipher letters,
+this program treats them specially.
+
+Single-quotes appear in the "shape" of a word:
+
+"didn't" has a "shape" `0102'3`
+
+Single-quotes are always clear text of enciphered single-quotes.
+
 *Begin Cycle*
 
 Looking through a dictionary of words (Linux `/usr/share/dict/words` with some deletions),
