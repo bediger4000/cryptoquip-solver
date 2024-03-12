@@ -35,12 +35,12 @@ func main() {
 		Verbose:       *verbose,
 	}
 	if len(hints) > 0 {
-		hints['\''] = '\'' // always in the clear
 		for cipherHint, clearHint := range hints {
 			fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
 			solved.SetSolved(cipherHint, clearHint)
 		}
 	}
+	solved.SetSolved('\'', '\'')
 	fmt.Printf("%d  total cipher words\n", len(puzzlewords))
 	fmt.Printf("%d unique cipher words\n", len(uniquePuzzlewords))
 	fmt.Printf("%d  total cipher letters\n", len(solved.CipherLetters))
