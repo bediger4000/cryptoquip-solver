@@ -35,6 +35,7 @@ func main() {
 		Verbose:       *verbose,
 	}
 	if len(hints) > 0 {
+		hints['\''] = '\'' // always in the clear
 		for cipherHint, clearHint := range hints {
 			fmt.Printf("Hint: %c = %c\n\n", cipherHint, clearHint)
 			solved.SetSolved(cipherHint, clearHint)
