@@ -67,7 +67,7 @@ func NewRunesDict(wordDict map[string][]string) map[string]*Entry {
 			// encountered this configuration before
 			for _, word := range words {
 				for idx, r := range word {
-					if r > 'z' || r < 'a' {
+					if r != '\'' && (r > 'z' || r < 'a') {
 						continue
 					}
 					if found := entry.Runes[idx][r]; !found {
@@ -83,7 +83,7 @@ func NewRunesDict(wordDict map[string][]string) map[string]*Entry {
 			e.Runes = make(map[int]map[rune]bool)
 			for _, word := range words {
 				for idx, r := range word {
-					if r > 'z' || r < 'a' {
+					if (r > 'z' || r < 'a') && r != '\'' {
 						continue
 					}
 					if _, ok := e.Runes[idx]; !ok {
