@@ -38,5 +38,5 @@ func StringConfiguration(line string) string {
 		}
 	}
 
-	return string(key)
+	return string(key[:idx])
 }
