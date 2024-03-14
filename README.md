@@ -49,7 +49,7 @@ the program can read and use more than one hint.
 After that, you can run the program:
 
 ```sh
-$ ./solver -p puzzle.in -v > puzzle.out
+$ ./solver -p puzzle.in -v -s > puzzle.out
 ```
 
 The default clear text dictionary is `/usr/share/dict/words`.
@@ -57,13 +57,16 @@ You may need to install that, it sometimes isn't in a distro's default packages.
 I also find that `/usr/share/dict/words` has far too many not-really-words,
 like lists of lower-case Roman numerals.
 Apparently `words` intended use case is spell-checkers,
-and folks don't like it flagging the lower-case Roman numerals used on forewards.
+and folks don't like it flagging the lower-case Roman numerals used on forewords.
 I've noticed that larger dictionaries don't give better results with my
 [Jumble Solver](https://github.com/bediger4000/jumble-solver) either.
 I don't know if this is a general, information-theoretic problem,
 or if I've just stumbled across two peculiar cases.
 
 The `-v` flag gives very verbose output that will help you see what the program does.
+
+The `-s` flag disallows cipher letters as their own solution cleartext letter,
+which I think it common to all of the newspaper decoding puzzles.
 
 ### Encoder
 
@@ -84,7 +87,7 @@ and have the fun of solving a puzzle that you already have an answer for.
 
 ```sh
 $ go build findbykey.go
-$ ./findbykey words footballer
+$ ./findbykey /usr/share/dict/words footballer
 ```
 
 See what dictionary words match (by "shape") specified words.
@@ -94,17 +97,18 @@ See what dictionary words match (by "shape") specified words.
 If the answer to the Cryptoquip includes a word that isn't in the dictionary,
 my program will probably not find a solution.
 It will find words of the same "shape" as the non-dictionary enciphered word,
-but that may not include the correct clear text letter at in the set of clear text
+but that may not include the correct clear text letter in the set of clear text
 letters corresponding to some enciphered letter.
 
 This can show up as enciphered letters that don't get a single clear text letter
-as a solution even after many cycles through the algorithm.
+as a solution,
+even after many cycles through the algorithm.
 
 It can also show up as an enciphered letter that has at least 2 
 "single" clear text letters when correlating regular expression matches.
 See below.
 
-Sometimmes the presence of a single word can cause the program problems.
+Sometimes the presence of a single word in the dictionary can cause the program problems.
 Removing "xor" from my dictionary of clear text words let my program
 solve all of some cryptoquips,
 where it previously could not find the clear text solution to one cipher letter.
@@ -134,6 +138,8 @@ My contribution is to use the information in the arrangement of ciphertext into 
 A (whitespace separated) ciphered word has the same number of letters,
 and arrangement of letters,
 as its deciphered corresponding word.
+This program considers apostrophes (a.k.a. single quotes) as letters,
+since all the newspaper ciphers leave apostrophes un-enciphered.
 
 The image of the puzzle above has the enciphered word OHDXLZSVPLYY.
 The corresponding  deciphered word will have 12 characters,
@@ -193,7 +199,7 @@ All 26 English letters could be the solution of 'X' at position 1.
 For some word shapes, the information in length of words
 and arrangement of letters doesn't help.
 
-My progam also looks at correlations of enciphered letters between words.
+My program also looks at correlations of enciphered letters between words.
 For each enciphered word, it looks at the sets of clear text letters that correspond
 to any enciphered letters between each word.
 
@@ -261,7 +267,7 @@ By shape alone, my clear text dictionary has matches:
 
 3316 shape-matches.
 
-I looked up those sentences that have all 26 letters in the english
+I looked up those sentences that have all 26 letters in the English
 alphabet once, thinking that they would contain so few duplicate
 letters that my solver would fail.
 
