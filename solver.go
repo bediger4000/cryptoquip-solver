@@ -17,7 +17,13 @@ func main() {
 	puzzleName := flag.String("p", "", "puzzle file name")
 	verbose := flag.Bool("v", false, "verbose output")
 	cycles := flag.Int("c", 8, "number of cycles to attempt")
+	encodeSelf := flag.Bool("s", false, "cipher letter can encode itself, real default true")
 	flag.Parse()
+
+	*encodeSelf = !*encodeSelf
+	if *encodeSelf {
+		fmt.Println("Allowing cipherletters to encode themselves")
+	}
 
 	if *puzzleName == "" {
 		log.Fatal("need a puzzle file name")
@@ -148,6 +154,19 @@ func main() {
 		}
 
 		printSortedPossible(cycle, possibleLetters)
+		if !*encodeSelf {
+			// in real Cryptoquips, Cryptoquotes and Celebrity Ciphers,
+			// a cipherletter isn't itself as a clearletter
+			for cipherletter, matches := range possibleLetters {
+				if _, ok := matches[cipherletter]; ok {
+					if *verbose {
+						fmt.Printf("deleting %c from matching clearletter for %c\n", cipherletter, cipherletter)
+					}
+					delete(matches, cipherletter)
+					possibleLetters[cipherletter] = matches
+				}
+			}
+		}
 
 		// if any ciper letters have a set of cleartext letters of size 1,
 		// mark those cipher letters as solved.
